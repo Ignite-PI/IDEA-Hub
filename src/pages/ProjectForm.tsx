@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, FileText, Plus, Save } from 'lucide-react';
-import { api } from '../api';
+import { api, type AiContext } from '../api';
+import { AiAssistButton } from '../components/ai/AiAssist';
+import { AiPanel } from '../components/ai/AiPanel';
 import { CHARACTERS } from '../characters';
 import { EmptyState, Loading } from '../components/EmptyState';
 import { useProjects } from '../components/ProjectsContext';
@@ -24,15 +26,27 @@ export function ProjectForm() {
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);
   const [created, setCreated] = useState<ProjectDetail | null>(null);
+  const [existing, setExisting] = useState<ProjectDetail | null>(null);
 
   useEffect(() => {
-    if (!id) { setForm(BLANK); setCreated(null); setTouched(false); return; }
+    if (!id) { setForm(BLANK); setCreated(null); setTouched(false); setExisting(null); return; }
     setLoading(true);
     api.getProject(id)
-      .then((p) => setForm({ title: p.title, description: p.description, owner: p.owner, functional_area: p.functional_area, ops_manager: p.ops_manager, status: p.status, link: p.link }))
+      .then((p) => {
+        setExisting(p);
+        setForm({ title: p.title, description: p.description, owner: p.owner, functional_area: p.functional_area, ops_manager: p.ops_manager, status: p.status, link: p.link });
+      })
       .catch((e) => setLoadError((e as Error).message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // AI context = only this project's current (unsaved) information
+  const stateRef = useRef({ form, existing });
+  stateRef.current = { form, existing };
+  const getContext = useCallback((): AiContext => {
+    const { form: f, existing: e } = stateRef.current;
+    return { project: f, charter: e?.charter?.data, timeline: e?.timeline };
+  }, []);
 
   const suggestions = useMemo(() => ({
     owner: distinct(projects, 'owner'),
@@ -71,7 +85,7 @@ export function ProjectForm() {
 
   if (created) {
     return (
-      <div className="card success" style={{ marginTop: 20 }}>
+      <div className="card success-card" style={{ marginTop: 20 }}>
         <img src={CHARACTERS.ecobi} alt="" />
         <div>
           <div className="eyebrow">Saved to the portfolio</div>
@@ -113,7 +127,10 @@ export function ProjectForm() {
                 {titleError && <span className="error">{titleError}</span>}
               </div>
               <div className="field full">
-                <label htmlFor="desc">Project Description</label>
+                <div className="field-top">
+                  <label htmlFor="desc">Project Description</label>
+                  <AiAssistButton field="Project Description" value={form.description} onChange={(v) => update('description', v)} getContext={getContext} />
+                </div>
                 <textarea id="desc" className="textarea" rows={5} value={form.description} onChange={(e) => update('description', e.target.value)} placeholder="What is the idea, what problem does it solve, and who benefits?" />
               </div>
               <div className="field">
@@ -172,6 +189,10 @@ export function ProjectForm() {
       <datalist id="owners">{suggestions.owner.map((s) => <option key={s} value={s} />)}</datalist>
       <datalist id="areas">{suggestions.area.map((s) => <option key={s} value={s} />)}</datalist>
       <datalist id="managers">{suggestions.manager.map((s) => <option key={s} value={s} />)}</datalist>
+      <AiPanel
+        getContext={getContext}
+        targets={[{ key: 'description', label: 'Project Description', insert: (t) => setForm((f) => ({ ...f, description: f.description.trim() ? `${f.description.trimEnd()}\n\n${t}` : t })) }]}
+      />
     </>
   );
 }

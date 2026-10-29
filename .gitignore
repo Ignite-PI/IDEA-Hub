@@ -1,3 +1,9 @@
 node_modules
 dist
 server/data/*.sqlite
+server/data/*.tmp
+server/data/backups
+.pglite
+.vercel
+.env*
+!.env.example

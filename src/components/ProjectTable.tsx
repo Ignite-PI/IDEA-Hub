@@ -19,9 +19,9 @@ const COLUMNS: { key: SortKey | null; label: string; compactHide?: boolean }[] =
   { key: 'owner', label: 'Project Owner' },
   { key: 'functional_area', label: 'Functional Area' },
   { key: 'ops_manager', label: 'Operations Manager', compactHide: true },
-  { key: 'status', label: 'Status' },
+  { key: 'status', label: 'Project Status' },
   { key: null, label: 'Link' },
-  { key: 'charter', label: 'Charter' },
+  { key: 'charter', label: 'Charter Status' },
 ];
 
 export function ProjectTable({ projects, sortKey, sortDir, onSort, compact }: Props) {

@@ -1,23 +1,24 @@
 /**
  * Project Charter document export (Word + PDF).
- * Both generators share the same section model so the documents stay identical
- * in structure. Libraries are lazy-loaded to keep the main bundle small.
+ * Page 1 reproduces the SBF "PROJECT CHARTER TEMPLATE.pptx" grid (landscape):
+ *   header · info rows · Problem Statement | Engagement Goals · Key Metric table ·
+ *   Business Impact / Benefit | Scope & Constraints | Timeline (Start and End) per CURES phase.
+ * Page 2 ("Supporting Detail") holds the hub's extra sections: deliverables, RACI,
+ * milestones / tasks and the full CURES activity list.
+ * Libraries are lazy-loaded to keep the main bundle small.
  */
-import { TIMELINE_PHASES, type CharterData } from '../types';
-import { PHASE_COLORS } from './charter';
+import { ACTIVITY_META, TIMELINE_PHASES, type CharterData, type TimelineActivity } from '../types';
+import { durationDays, enteredActivities, phaseRange } from './charter';
 import { formatDate, safeFileName } from './format';
 
-const C = {
-  purple: '5009B5',
-  dark: '2B1B49',
-  light: '794CFF',
-  pale: 'EBE4FF',
-  turq: '00B8BA',
-  paleTurq: 'D9F5F5',
+// Colours sampled from the PowerPoint template
+const T = {
+  navy: '1A3673',
+  label: 'E1EDFF',
+  line: '8C9AB9',
   text: '231E33',
   muted: '6B6680',
-  border: 'D9D4E6',
-  gray: 'F5F5F5',
+  placeholder: 'A39DB8',
 };
 
 const fileName = (d: CharterData, ext: string) => `${safeFileName(d.projectTitle)}_ProjectCharter.${ext}`;
@@ -42,167 +43,182 @@ function triggerDownload(blob: Blob, name: string) {
 }
 
 const filledMilestones = (d: CharterData) => d.milestones.filter((m) => val(m.task) || val(m.owner) || m.dueDate);
+const filledMetrics = (d: CharterData) => d.keyMetrics.filter((m) => [m.metric, m.definition, m.target, m.baseline, m.impact].some((x) => val(x)));
+
+/** Scope & Constraints box content (template has one box; the hub captures three parts). */
+const scopeParts = (d: CharterData) =>
+  ([['In scope', d.inScope], ['Out of scope', d.outOfScope], ['Constraints', d.constraints]] as const).filter(([, v]) => val(v));
+
+const phaseDates = (acts: TimelineActivity[]) => TIMELINE_PHASES.map((p) => ({ phase: p, ...phaseRange(acts, p) }));
 
 // ─── Word (.docx) ────────────────────────────────────────────────────────────
-export async function downloadCharterDocx(d: CharterData): Promise<void> {
+export async function downloadCharterDocx(d: CharterData, timeline: TimelineActivity[] = []): Promise<void> {
   const {
-    AlignmentType, BorderStyle, Document, Footer, Packer, PageNumber, Paragraph, ShadingType, Table, TableCell, TableLayoutType,
-    TableRow, TabStopType, TextRun, VerticalAlign, WidthType,
+    AlignmentType, BorderStyle, Document, Footer, HeightRule, Packer, PageBreak, PageNumber, PageOrientation, Paragraph, ShadingType, Table,
+    TableCell, TableLayoutType, TableRow, TabStopType, TextRun, VerticalAlign, WidthType,
   } = await import('docx');
 
-  const FULL = 10800; // usable width in twips (Letter, 0.5" margins)
-  const border = { style: BorderStyle.SINGLE, size: 4, color: C.border };
-  const borders = { top: border, bottom: border, left: border, right: border, insideHorizontal: border, insideVertical: border };
-  const margins = { top: 70, bottom: 70, left: 120, right: 120 };
+  const acts = enteredActivities(timeline);
+  const FULL = 14400; // Letter landscape with 0.5" margins (twips)
+  const pct = (p: number) => Math.round((FULL * p) / 100);
+  const line = { style: BorderStyle.SINGLE, size: 4, color: T.line };
+  const borders = { top: line, bottom: line, left: line, right: line, insideHorizontal: line, insideVertical: line };
+  const margins = { top: 50, bottom: 50, left: 100, right: 100 };
+  const FONT = 'Segoe UI';
 
-  // keepNext on every in-table paragraph keeps each section's table together on one page
-  const paras = (text: string, opts: { bold?: boolean; color?: string; size?: number; placeholder?: string } = {}) => {
-    const lines = (val(text) || opts.placeholder || '').split('\n');
-    return lines.map((line) => new Paragraph({
-      keepNext: true,
+  const runs = (text: string, o: { bold?: boolean; color?: string; size?: number } = {}) =>
+    (val(text) ? val(text) : '').split('\n').map((ln) => new Paragraph({
       spacing: { after: 0 },
-      children: [new TextRun({ text: line, bold: opts.bold, color: val(text) ? opts.color ?? C.text : 'A39DB8', size: opts.size ?? 18, font: 'Segoe UI' })],
+      children: [new TextRun({ text: ln, bold: o.bold, color: o.color ?? T.text, size: o.size ?? 17, font: FONT })],
     }));
-  };
-  const subHead = (text: string, color: string) =>
-    new Paragraph({ keepNext: true, children: [new TextRun({ text, bold: true, color, size: 18, font: 'Segoe UI' })] });
 
-  const cell = (text: string, o: { width: number; span?: number; fill?: string; bold?: boolean; color?: string; label?: boolean; center?: boolean } ) =>
+  const cell = (text: string | InstanceType<typeof Paragraph>[], o: { w: number; span?: number; rowSpan?: number; label?: boolean; center?: boolean; fill?: string; color?: string; minH?: boolean; bold?: boolean }) =>
     new TableCell({
-      width: { size: o.width, type: WidthType.DXA },
+      width: { size: o.w, type: WidthType.DXA },
       columnSpan: o.span,
+      rowSpan: o.rowSpan,
       margins,
-      verticalAlign: VerticalAlign.CENTER,
-      shading: o.fill ? { fill: o.fill, type: ShadingType.CLEAR, color: 'auto' } : undefined,
-      children: o.label
-        ? [new Paragraph({ keepNext: true, alignment: o.center ? AlignmentType.CENTER : undefined, children: [new TextRun({ text, bold: true, color: o.color ?? C.dark, size: 18, font: 'Segoe UI' })] })]
-        : paras(text, { bold: o.bold, color: o.color }),
+      verticalAlign: o.label ? VerticalAlign.CENTER : VerticalAlign.TOP,
+      shading: o.label || o.fill ? { fill: o.fill ?? T.label, type: ShadingType.CLEAR, color: 'auto' } : undefined,
+      children: Array.isArray(text)
+        ? text
+        : o.label
+          ? [new Paragraph({ alignment: o.center ? AlignmentType.CENTER : undefined, children: [new TextRun({ text, size: 17, font: FONT, color: o.color ?? T.text, bold: o.bold })] })]
+          : runs(text, { bold: o.bold }),
     });
 
-  const table = (columnWidths: number[], rows: InstanceType<typeof TableRow>[]) =>
-    new Table({ width: { size: FULL, type: WidthType.DXA }, columnWidths, layout: TableLayoutType.FIXED, borders, rows });
+  const table = (widths: number[], rows: InstanceType<typeof TableRow>[]) =>
+    new Table({ width: { size: FULL, type: WidthType.DXA }, columnWidths: widths, layout: TableLayoutType.FIXED, borders, rows });
+  const joiner = () => new Paragraph({ spacing: { before: 0, after: 0, line: 20 }, children: [new TextRun({ text: '', size: 2 })] });
+  const row = (cells: InstanceType<typeof TableCell>[], height?: number) =>
+    new TableRow({ children: cells, cantSplit: true, height: height ? { value: height, rule: HeightRule.ATLEAST } : undefined });
 
-  const heading = (title: string, cols: number[]) =>
-    new TableRow({
-      children: [new TableCell({
-        columnSpan: cols.length,
-        width: { size: FULL, type: WidthType.DXA },
-        margins: { top: 80, bottom: 80, left: 140, right: 140 },
-        shading: { fill: C.purple, type: ShadingType.CLEAR, color: 'auto' },
-        children: [new Paragraph({ keepNext: true, children: [new TextRun({ text: title.toUpperCase(), bold: true, color: 'FFFFFF', size: 20, font: 'Segoe UI', characterSpacing: 20 })] })],
-      })],
-    });
+  const header = (title: string) => table([FULL], [row([new TableCell({
+    width: { size: FULL, type: WidthType.DXA },
+    margins: { top: 110, bottom: 110, left: 140, right: 140 },
+    shading: { fill: T.navy, type: ShadingType.CLEAR, color: 'auto' },
+    children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: title, bold: true, color: 'FFFFFF', size: 24, font: FONT })] })],
+  })])]);
 
-  const gap = () => new Paragraph({ spacing: { after: 120 }, children: [] });
-
-  // Project information — 4 columns: label | value | label | value
-  const infoCols = [1900, 3500, 1900, 3500];
-  const info = table(infoCols, [
-    heading('Project Information', infoCols),
-    new TableRow({ children: [cell('Project Title', { width: infoCols[0], fill: C.pale, label: true }), cell(d.projectTitle, { width: FULL - infoCols[0], span: 3, bold: true })] }),
-    new TableRow({ children: [
-      cell('Business Function', { width: infoCols[0], fill: C.pale, label: true }), cell(d.businessFunction, { width: infoCols[1] }),
-      cell('Business Owner', { width: infoCols[2], fill: C.pale, label: true }), cell(d.businessOwner, { width: infoCols[3] }),
-    ] }),
-    new TableRow({ children: [
-      cell('Executive Sponsor', { width: infoCols[0], fill: C.pale, label: true }), cell(d.executiveSponsor, { width: infoCols[1] }),
-      cell('Line of Business', { width: infoCols[2], fill: C.pale, label: true }), cell(d.lineOfBusiness, { width: infoCols[3] }),
-    ] }),
-    new TableRow({ children: [cell('Execution Lead', { width: infoCols[0], fill: C.pale, label: true }), cell(d.executionLead, { width: FULL - infoCols[0], span: 3 })] }),
+  // ── Page 1: template grid ──
+  const iw = [pct(10.7), pct(26.9), pct(11.4), pct(19.6), pct(12.9)];
+  iw.push(FULL - iw.reduce((a, b) => a + b, 0));
+  const info = table(iw, [
+    row([cell('Project Title', { w: iw[0]!, label: true }), cell(d.projectTitle, { w: FULL - iw[0]!, span: 5, bold: true })]),
+    row([
+      cell('Business Function', { w: iw[0]!, label: true }), cell(d.businessFunction, { w: iw[1]! }),
+      cell('Business Owner', { w: iw[2]!, label: true }), cell(d.businessOwner, { w: iw[3]! }),
+      cell('Executive Sponsor', { w: iw[4]!, label: true }), cell(d.executiveSponsor, { w: iw[5]! }),
+    ]),
+    row([
+      cell('Line of Business', { w: iw[0]!, label: true }), cell(d.lineOfBusiness, { w: iw[1]! }),
+      cell('Execution Lead', { w: iw[2]!, label: true }), cell(d.executionLead, { w: iw[3]! }),
+      cell('CURES Lead', { w: iw[4]!, label: true }), cell(d.curesLead, { w: iw[5]! }),
+    ]),
   ]);
 
-  // Project definition
-  const defCols = [2400, 4200, 4200];
-  const defRow = (label: string, text: string) =>
-    new TableRow({ children: [cell(label, { width: defCols[0], fill: C.pale, label: true }), cell(text, { width: FULL - defCols[0], span: 2 })] });
-  const definition = table(defCols, [
-    heading('Project Definition', defCols),
-    defRow('Problem Statement', d.problemStatement),
-    defRow('Project Goals', d.projectGoals),
-    new TableRow({ children: [
-      cell('In Scope / Out of Scope', { width: defCols[0], fill: C.pale, label: true }),
-      new TableCell({
-        width: { size: defCols[1], type: WidthType.DXA }, margins,
-        children: [subHead('In Scope', '007476'), ...paras(d.inScope)],
-      }),
-      new TableCell({
-        width: { size: defCols[2], type: WidthType.DXA }, margins,
-        children: [subHead('Out of Scope', '963457'), ...paras(d.outOfScope)],
-      }),
-    ] }),
-    defRow('Project Deliverables', d.deliverables),
-    defRow('Business Impact / Benefit', d.businessImpact),
+  const half = [FULL / 2, FULL / 2];
+  const problem = table(half, [
+    row([cell('Problem Statement', { w: half[0]!, label: true, center: true }), cell('Engagement Goals', { w: half[1]!, label: true, center: true })]),
+    row([cell(d.problemStatement, { w: half[0]! }), cell(d.projectGoals, { w: half[1]! })], 1500),
   ]);
 
-  // RACI
-  const raciCols = [2700, 2700, 2700, 2700];
-  const raci = table(raciCols, [
-    heading('RACI', raciCols),
-    new TableRow({ tableHeader: true, children: RACI_ROWS.map(([label]) => cell(label, { width: 2700, fill: C.pale, label: true, center: true })) }),
-    new TableRow({ children: RACI_ROWS.map(([, key]) => cell(d.raci[key], { width: 2700 })) }),
+  const kw = [pct(14.5), pct(34), pct(16.8), pct(16.8)];
+  kw.push(FULL - kw.reduce((a, b) => a + b, 0));
+  const metrics = filledMetrics(d);
+  const metricRows = metrics.length ? metrics : [null];
+  const keyMetrics = table(kw, [
+    row(['Key Metric', 'Definition', 'Target', 'Baseline', 'Impact'].map((h, i) => cell(h, { w: kw[i]!, label: true, center: true }))),
+    ...metricRows.map((m) => row([
+      cell(m?.metric ?? '', { w: kw[0]! }), cell(m?.definition ?? '', { w: kw[1]! }), cell(m?.target ?? '', { w: kw[2]! }),
+      cell(m?.baseline ?? '', { w: kw[3]! }), cell(m?.impact ?? '', { w: kw[4]! }),
+    ], 560)),
   ]);
 
-  // Milestones
-  const msCols = [600, 6000, 2400, 1800];
-  const ms = filledMilestones(d);
-  const milestones = table(msCols, [
-    heading('Milestones / Tasks', msCols),
-    new TableRow({ tableHeader: true, children: ['#', 'Milestone / Task', 'Owner', 'Target Date'].map((h, i) => cell(h, { width: msCols[i], fill: C.pale, label: true, center: i === 0 })) }),
-    ...(ms.length ? ms : [{ task: '', owner: '', dueDate: '', id: '' }]).map((m, i) => new TableRow({ children: [
-      cell(ms.length ? String(i + 1) : '', { width: msCols[0], label: true, center: true, color: C.purple }),
-      cell(m.task, { width: msCols[1] }), cell(m.owner, { width: msCols[2] }), cell(date(m.dueDate), { width: msCols[3] }),
-    ] })),
+  const bw = [pct(34.7), pct(37.4), pct(8.8), pct(9.4)];
+  bw.push(FULL - bw.reduce((a, b) => a + b, 0));
+  const scopeParas = scopeParts(d).flatMap(([label, v], i) => [
+    new Paragraph({ spacing: { before: i ? 80 : 0 }, children: [new TextRun({ text: `${label}:`, bold: true, size: 17, font: FONT, color: T.navy })] }),
+    ...runs(v),
+  ]);
+  const pdts = phaseDates(acts);
+  const bottom = table(bw, [
+    row([
+      cell('Business Impact / Benefit', { w: bw[0]!, label: true, center: true }),
+      cell('Scope & Constraints', { w: bw[1]!, label: true, center: true }),
+      cell('Timeline (Start and End)', { w: bw[2]! + bw[3]! + bw[4]!, span: 3, label: true, center: true }),
+    ]),
+    ...pdts.map((p, i) => row([
+      ...(i === 0 ? [cell(d.businessImpact, { w: bw[0]!, rowSpan: 5 }), cell(scopeParas.length ? scopeParas : runs(''), { w: bw[1]!, rowSpan: 5 })] : []),
+      cell(`${p.phase}:`, { w: bw[2]!, label: true, center: true }),
+      cell(date(p.start), { w: bw[3]! }),
+      cell(date(p.end), { w: bw[4]! }),
+    ], 380)),
   ]);
 
-  // Timeline
-  const tlCols = [2000, 5000, 1900, 1900];
-  const timeline = table(tlCols, [
-    heading('Timeline', tlCols),
-    new TableRow({ tableHeader: true, children: ['Phase', 'Task', 'Start Date', 'End Date'].map((h, i) => cell(h, { width: tlCols[i], fill: C.pale, label: true })) }),
-    ...TIMELINE_PHASES.map((p) => {
-      const t = d.timeline[p];
-      return new TableRow({ children: [
-        cell(p, { width: tlCols[0], fill: PHASE_COLORS[p].slice(1), label: true, color: 'FFFFFF' }),
-        cell(t.task, { width: tlCols[1] }), cell(date(t.start), { width: tlCols[2] }), cell(date(t.end), { width: tlCols[3] }),
-      ] });
-    }),
-  ]);
-
-  // Title band
-  const header = new Table({
-    width: { size: FULL, type: WidthType.DXA }, columnWidths: [FULL], layout: TableLayoutType.FIXED,
-    borders: { top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, bottom: { style: BorderStyle.SINGLE, size: 24, color: C.turq }, left: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, right: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }, insideHorizontal: border, insideVertical: border },
-    rows: [new TableRow({ children: [new TableCell({
-      width: { size: FULL, type: WidthType.DXA },
-      margins: { top: 200, bottom: 200, left: 240, right: 240 },
-      shading: { fill: C.dark, type: ShadingType.CLEAR, color: 'auto' },
-      children: [
-        new Paragraph({ children: [new TextRun({ text: 'SBF PROJECT CHARTER', bold: true, color: 'B9A6FF', size: 18, font: 'Segoe UI', characterSpacing: 40 })] }),
-        new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: val(d.projectTitle) || 'Untitled Project', bold: true, color: 'FFFFFF', size: 36, font: 'Segoe UI' })] }),
-        new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: `SBF Tower · Generated ${formatDate(new Date().toISOString())}`, color: 'D9D2EE', size: 16, font: 'Segoe UI' })] }),
-      ],
-    })] })],
+  // ── Page 2: supporting detail ──
+  const sub = (title: string) => new Paragraph({
+    spacing: { before: 200, after: 60 },
+    children: [new TextRun({ text: title, bold: true, color: T.navy, size: 20, font: FONT })],
   });
+  const deliverables = table([FULL], [row([cell(d.deliverables || ' ', { w: FULL })], 500)]);
+  const rw = [FULL / 4, FULL / 4, FULL / 4, FULL / 4];
+  const raci = table(rw, [
+    row(RACI_ROWS.map(([l]) => cell(l, { w: rw[0]!, label: true, center: true }))),
+    row(RACI_ROWS.map(([, k]) => cell(d.raci[k], { w: rw[0]! })), 500),
+  ]);
+  const mw = [pct(5), pct(60), pct(20)];
+  mw.push(FULL - mw.reduce((a, b) => a + b, 0));
+  const ms = filledMilestones(d);
+  const milestones = table(mw, [
+    row(['#', 'Milestone / Task', 'Owner', 'Target Date'].map((h, i) => cell(h, { w: mw[i]!, label: true, center: i === 0 }))),
+    ...(ms.length ? ms : [null]).map((m, i) => row([
+      cell(m ? String(i + 1) : '', { w: mw[0]! }), cell(m?.task ?? '', { w: mw[1]! }), cell(m?.owner ?? '', { w: mw[2]! }), cell(date(m?.dueDate ?? ''), { w: mw[3]! }),
+    ])),
+  ]);
+  const aw = [pct(12), pct(40), pct(12), pct(12), pct(7), pct(10)];
+  aw.push(FULL - aw.reduce((a, b) => a + b, 0));
+  const activities = table(aw, [
+    row(['CURES Phase', 'Activity / Task', 'Start', 'End', 'Days', 'Status', 'Progress'].map((h, i) => cell(h, { w: aw[i]!, label: true }))),
+    ...(acts.length ? acts : [null]).map((a) => row([
+      cell(a?.phase ?? '', { w: aw[0]!, bold: true }), cell(a?.task ?? '', { w: aw[1]! }), cell(date(a?.start_date ?? ''), { w: aw[2]! }),
+      cell(date(a?.end_date ?? ''), { w: aw[3]! }), cell(a ? String(durationDays(a.start_date, a.end_date) ?? '') : '', { w: aw[4]! }),
+      cell(a?.status ?? '', { w: aw[5]!, ...(a ? { fill: ACTIVITY_META[a.status].bg.slice(1), label: true, color: ACTIVITY_META[a.status].fg.slice(1) } : {}) }),
+      cell(a ? (a.status === 'Completed' ? '100%' : a.progress != null ? `${a.progress}%` : '') : '', { w: aw[6]! }),
+    ])),
+  ]);
 
   const doc = new Document({
-    creator: 'SBF Tower Portfolio Hub',
+    creator: 'SBF Project Hub',
     title: `${d.projectTitle} — Project Charter`,
-    styles: { default: { document: { run: { font: 'Segoe UI', size: 18, color: C.text } } } },
+    styles: { default: { document: { run: { font: FONT, size: 17, color: T.text } } } },
     sections: [{
-      properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 720, bottom: 720, left: 720, right: 720, footer: 360 } } },
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840, orientation: PageOrientation.LANDSCAPE },
+          margin: { top: 720, bottom: 720, left: 720, right: 720, footer: 300 },
+        },
+      },
       footers: {
         default: new Footer({
           children: [new Paragraph({
             tabStops: [{ type: TabStopType.RIGHT, position: FULL }],
-            border: { top: { style: BorderStyle.SINGLE, size: 4, color: C.border, space: 4 } },
             children: [
-              new TextRun({ text: `${val(d.projectTitle) || 'Project'} — SBF Project Charter`, color: C.muted, size: 15 }),
-              new TextRun({ children: ['\tPage ', PageNumber.CURRENT, ' of ', PageNumber.TOTAL_PAGES], color: C.muted, size: 15 }),
+              new TextRun({ text: `${val(d.projectTitle) || 'Project'} — SBF Project Charter · Generated ${formatDate(new Date().toISOString())}`, color: T.muted, size: 14 }),
+              new TextRun({ children: ['\tPage ', PageNumber.CURRENT, ' of ', PageNumber.TOTAL_PAGES], color: T.muted, size: 14 }),
             ],
           })],
         }),
       },
-      children: [header, gap(), info, gap(), definition, gap(), raci, gap(), milestones, gap(), timeline],
+      children: [
+        header('Project Charter'), joiner(), info, joiner(), problem, joiner(), keyMetrics, joiner(), bottom,
+        new Paragraph({ children: [new PageBreak()] }),
+        header('Project Charter — Supporting Detail'),
+        sub('Project Deliverables'), deliverables,
+        sub('RACI'), raci,
+        sub('Milestones / Tasks'), milestones,
+        sub('CURES Timeline Activities'), activities,
+      ],
     }],
   });
 
@@ -210,104 +226,119 @@ export async function downloadCharterDocx(d: CharterData): Promise<void> {
 }
 
 // ─── PDF ─────────────────────────────────────────────────────────────────────
-export async function downloadCharterPdf(d: CharterData): Promise<void> {
+export async function downloadCharterPdf(d: CharterData, timeline: TimelineActivity[] = []): Promise<void> {
   const [{ jsPDF }, atModule] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
   // UMD build: the default export may be wrapped depending on the bundler's CJS interop
   const atDefault = atModule.default as unknown as typeof atModule.default | { default: typeof atModule.default };
   const autoTable = typeof atDefault === 'function' ? atDefault : atDefault.default;
   type Cell = Record<string, unknown> | string;
 
+  const acts = enteredActivities(timeline);
   const rgb = (hex: string): [number, number, number] => [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
-  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const doc = new jsPDF({ unit: 'pt', format: 'letter', orientation: 'landscape' });
   const W = doc.internal.pageSize.getWidth();
-  const M = 36;
+  const M = 28;
   const CW = W - M * 2;
+  const w = (p: number) => (CW * p) / 100;
+  let y = M;
 
-  // Title band
-  doc.setFillColor(...rgb(C.dark));
-  doc.roundedRect(M, M, CW, 78, 6, 6, 'F');
-  doc.setFillColor(...rgb(C.turq));
-  doc.rect(M, M + 74, CW, 4, 'F');
-  doc.setTextColor(185, 166, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('SBF PROJECT CHARTER', M + 18, M + 22, { charSpace: 1.5 });
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  const titleLines = doc.splitTextToSize(val(d.projectTitle) || 'Untitled Project', CW - 36) as string[];
-  doc.text(titleLines[0] + (titleLines.length > 1 ? '…' : ''), M + 18, M + 46);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(217, 210, 238);
-  doc.text(`SBF Tower · Generated ${formatDate(new Date().toISOString())}`, M + 18, M + 63);
+  const header = (title: string) => {
+    doc.setFillColor(...rgb(T.navy));
+    doc.rect(M, y, CW, 26, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(title, W / 2, y + 17, { align: 'center' });
+    y += 26;
+  };
 
-  let y = M + 92;
   const base = {
-    margin: { left: M, right: M, top: M, bottom: M + 14 },
+    margin: { left: M, right: M, top: M, bottom: M + 12 },
     theme: 'grid' as const,
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 4.5, bottom: 4.5, left: 6, right: 6 }, lineColor: rgb(C.border), lineWidth: 0.6, textColor: rgb(C.text), valign: 'middle' as const, overflow: 'linebreak' as const },
-    headStyles: { fillColor: rgb(C.purple), textColor: [255, 255, 255] as [number, number, number], fontStyle: 'bold' as const, fontSize: 10, cellPadding: { top: 5, bottom: 5, left: 8, right: 8 } },
+    tableWidth: CW,
+    styles: { font: 'helvetica', fontSize: 8, cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 }, lineColor: rgb(T.line), lineWidth: 0.5, textColor: rgb(T.text), valign: 'top' as const, overflow: 'linebreak' as const },
   };
-  const label = (text: string, cellProps: Record<string, unknown> = {}): Cell => ({ content: text, ...cellProps, styles: { fillColor: rgb(C.pale), fontStyle: 'bold', textColor: rgb(C.dark) } });
-  const sub = (text: string): Cell => ({ content: text, styles: { fillColor: rgb(C.pale), fontStyle: 'bold', textColor: rgb(C.dark), halign: 'left' } });
-  const head = (title: string, span: number) => [[{ content: title.toUpperCase(), colSpan: span }]];
-  const section = (head_: Cell[][], body: Cell[][], columnStyles: Record<number, Record<string, unknown>>) => {
-    autoTable(doc, { ...base, startY: y, head: head_, body, columnStyles, rowPageBreak: 'avoid', pageBreak: 'avoid' });
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12;
+  const L = (text: string, extra: Record<string, unknown> = {}): Cell => ({ content: text, ...extra, styles: { fillColor: rgb(T.label), valign: 'middle', halign: extra.center ? 'center' : 'left' } });
+  const block = (body: Cell[][], columnStyles: Record<number, Record<string, unknown>>, opts: Record<string, unknown> = {}) => {
+    autoTable(doc, { ...base, startY: y, body, columnStyles, rowPageBreak: 'avoid', ...opts });
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
   };
 
-  section(head('Project Information', 4), [
-    [label('Project Title'), { content: val(d.projectTitle), colSpan: 3, styles: { fontStyle: 'bold' } }],
-    [label('Business Function'), val(d.businessFunction), label('Business Owner'), val(d.businessOwner)],
-    [label('Executive Sponsor'), val(d.executiveSponsor), label('Line of Business'), val(d.lineOfBusiness)],
-    [label('Execution Lead'), { content: val(d.executionLead), colSpan: 3 }],
-  ], { 0: { cellWidth: 100 }, 1: { cellWidth: CW / 2 - 100 }, 2: { cellWidth: 100 } });
+  // ── Page 1: template grid ──
+  header('Project Charter');
+  block([
+    [L('Project Title'), { content: val(d.projectTitle), colSpan: 5, styles: { fontStyle: 'bold' } }],
+    [L('Business Function'), val(d.businessFunction), L('Business Owner'), val(d.businessOwner), L('Executive Sponsor'), val(d.executiveSponsor)],
+    [L('Line of Business'), val(d.lineOfBusiness), L('Execution Lead'), val(d.executionLead), L('CURES Lead'), val(d.curesLead)],
+  ], { 0: { cellWidth: w(10.7) }, 1: { cellWidth: w(26.9) }, 2: { cellWidth: w(11.4) }, 3: { cellWidth: w(19.6) }, 4: { cellWidth: w(12.9) }, 5: { cellWidth: w(18.5) } });
 
-  section(head('Project Definition', 3), [
-    [label('Problem Statement'), { content: val(d.problemStatement), colSpan: 2 }],
-    [label('Project Goals'), { content: val(d.projectGoals), colSpan: 2 }],
-    [
-      label('In Scope / Out of Scope', { rowSpan: 2 }),
-      { content: 'In Scope', styles: { fillColor: rgb(C.paleTurq), fontStyle: 'bold', textColor: rgb('007476') } },
-      { content: 'Out of Scope', styles: { fillColor: rgb('FAEAF0'), fontStyle: 'bold', textColor: rgb('963457') } },
-    ],
-    [val(d.inScope), val(d.outOfScope)],
-    [label('Project Deliverables'), { content: val(d.deliverables), colSpan: 2 }],
-    [label('Business Impact / Benefit'), { content: val(d.businessImpact), colSpan: 2 }],
-  ], { 0: { cellWidth: 120 }, 1: { cellWidth: (CW - 120) / 2 }, 2: { cellWidth: (CW - 120) / 2 } });
+  block([
+    [L('Problem Statement', { center: true }), L('Engagement Goals', { center: true })],
+    [{ content: val(d.problemStatement), styles: { minCellHeight: 70 } }, { content: val(d.projectGoals), styles: { minCellHeight: 70 } }],
+  ], { 0: { cellWidth: CW / 2 }, 1: { cellWidth: CW / 2 } });
 
-  section(head('RACI', 4), [
-    RACI_ROWS.map(([l]) => sub(l)),
-    RACI_ROWS.map(([, k]) => val(d.raci[k])),
-  ], { 0: { cellWidth: CW / 4 }, 1: { cellWidth: CW / 4 }, 2: { cellWidth: CW / 4 }, 3: { cellWidth: CW / 4 } });
+  const metrics = filledMetrics(d);
+  block([
+    ['Key Metric', 'Definition', 'Target', 'Baseline', 'Impact'].map((h) => L(h, { center: true })),
+    ...(metrics.length ? metrics : [null]).map((m) =>
+      [m?.metric, m?.definition, m?.target, m?.baseline, m?.impact].map((v) => ({ content: val(v ?? ''), styles: { minCellHeight: 30 } }))),
+  ], { 0: { cellWidth: w(14.5) }, 1: { cellWidth: w(34) }, 2: { cellWidth: w(16.8) }, 3: { cellWidth: w(16.8) }, 4: { cellWidth: w(17.9) } });
 
+  const scopeText = scopeParts(d).map(([l, v]) => `${l}:\n${val(v)}`).join('\n\n');
+  const pdts = phaseDates(acts);
+  block([
+    [L('Business Impact / Benefit', { center: true }), L('Scope & Constraints', { center: true }), L('Timeline (Start and End)', { colSpan: 3, center: true })],
+    ...pdts.map((p, i) => [
+      ...(i === 0 ? [{ content: val(d.businessImpact), rowSpan: 5 }, { content: scopeText, rowSpan: 5 }] : []),
+      L(`${p.phase}:`, { center: true }),
+      { content: date(p.start), styles: { minCellHeight: 22, valign: 'middle' } },
+      { content: date(p.end), styles: { valign: 'middle' } },
+    ] as Cell[]),
+  ], { 0: { cellWidth: w(34.7) }, 1: { cellWidth: w(37.4) }, 2: { cellWidth: w(8.8) }, 3: { cellWidth: w(9.4) }, 4: { cellWidth: w(9.7) } });
+
+  // ── Page 2: supporting detail ──
+  doc.addPage();
+  y = M;
+  header('Project Charter — Supporting Detail');
+  const sub = (title: string) => {
+    y += 14;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...rgb(T.navy));
+    doc.text(title, M, y);
+    y += 5;
+  };
+  sub('Project Deliverables');
+  block([[{ content: val(d.deliverables), styles: { minCellHeight: 30 } }]], { 0: { cellWidth: CW } });
+  sub('RACI');
+  block([RACI_ROWS.map(([l]) => L(l, { center: true })), RACI_ROWS.map(([, k]) => ({ content: val(d.raci[k]), styles: { minCellHeight: 30 } }))],
+    { 0: { cellWidth: CW / 4 }, 1: { cellWidth: CW / 4 }, 2: { cellWidth: CW / 4 }, 3: { cellWidth: CW / 4 } });
+  sub('Milestones / Tasks');
   const ms = filledMilestones(d);
-  section(head('Milestones / Tasks', 4), [
-    [sub('#'), sub('Milestone / Task'), sub('Owner'), sub('Target Date')],
-    ...(ms.length ? ms.map((m, i) => [{ content: String(i + 1), styles: { halign: 'center', fontStyle: 'bold', textColor: rgb(C.purple) } }, val(m.task), val(m.owner), date(m.dueDate)]) : [['', '', '', '']]),
-  ], { 0: { cellWidth: 30 }, 2: { cellWidth: 130 }, 3: { cellWidth: 90 } });
-
-  section(head('Timeline', 4), [
-    [sub('Phase'), sub('Task'), sub('Start Date'), sub('End Date')],
-    ...TIMELINE_PHASES.map((p) => [
-      { content: p, styles: { fillColor: rgb(PHASE_COLORS[p].slice(1)), textColor: [255, 255, 255], fontStyle: 'bold' } },
-      val(d.timeline[p].task), date(d.timeline[p].start), date(d.timeline[p].end),
-    ]),
-  ], { 0: { cellWidth: 100 }, 2: { cellWidth: 90 }, 3: { cellWidth: 90 } });
+  block([
+    ['#', 'Milestone / Task', 'Owner', 'Target Date'].map((h) => L(h)),
+    ...(ms.length ? ms.map((m, i) => [String(i + 1), val(m.task), val(m.owner), date(m.dueDate)]) : [['', '', '', '']]),
+  ], { 0: { cellWidth: w(5) }, 1: { cellWidth: w(60) }, 2: { cellWidth: w(20) }, 3: { cellWidth: w(15) } });
+  sub('CURES Timeline Activities');
+  block([
+    ['CURES Phase', 'Activity / Task', 'Start', 'End', 'Days', 'Status', 'Progress'].map((h) => L(h)),
+    ...(acts.length ? acts.map((a) => [
+      { content: a.phase, styles: { fontStyle: 'bold' } }, val(a.task), date(a.start_date), date(a.end_date), String(durationDays(a.start_date, a.end_date) ?? ''),
+      { content: a.status, styles: { fillColor: rgb(ACTIVITY_META[a.status].bg.slice(1)), textColor: rgb(ACTIVITY_META[a.status].fg.slice(1)), fontStyle: 'bold' } },
+      a.status === 'Completed' ? '100%' : a.progress != null ? `${a.progress}%` : '',
+    ]) : [['', '', '', '', '', '', '']]),
+  ], { 0: { cellWidth: w(12) }, 1: { cellWidth: w(40) }, 2: { cellWidth: w(12) }, 3: { cellWidth: w(12) }, 4: { cellWidth: w(7) }, 5: { cellWidth: w(10) }, 6: { cellWidth: w(7) } });
 
   // Footer + page numbers on every page
-
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     const H = doc.internal.pageSize.getHeight();
-    doc.setDrawColor(...rgb(C.border));
-    doc.line(M, H - M + 2, W - M, H - M + 2);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...rgb(C.muted));
-    doc.text(`${val(d.projectTitle) || 'Project'} — SBF Project Charter`, M, H - M + 14);
-    doc.text(`Page ${i} of ${pages}`, W - M, H - M + 14, { align: 'right' });
+    doc.setFontSize(7.5);
+    doc.setTextColor(...rgb(T.muted));
+    doc.text(`${val(d.projectTitle) || 'Project'} — SBF Project Charter · Generated ${formatDate(new Date().toISOString())}`, M, H - M + 10);
+    doc.text(`Page ${i} of ${pages}`, W - M, H - M + 10, { align: 'right' });
   }
 
   triggerDownload(doc.output('blob'), fileName(d, 'pdf'));

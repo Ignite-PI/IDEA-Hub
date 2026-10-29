@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileDown, FileText, Pencil, Plus, Search } from 'lucide-react';
 import { api } from '../api';
-import { CHARACTERS } from '../characters';
+import { BRAND, CHARACTERS } from '../characters';
 import { CharterBadge, StatusBadge } from '../components/Badges';
 import { EmptyState, Loading } from '../components/EmptyState';
 import { Person } from '../components/Person';
@@ -39,7 +39,7 @@ export function Charters() {
     try {
       const detail = await api.getProject(p.id);
       const data = normalizeCharter(detail.charter?.data, detail);
-      await (kind === 'docx' ? downloadCharterDocx(data) : downloadCharterPdf(data));
+      await (kind === 'docx' ? downloadCharterDocx(data, detail.timeline) : downloadCharterPdf(data, detail.timeline));
       toast(`Downloaded ${p.title} charter`);
     } catch (e) {
       toast(`Download failed: ${(e as Error).message}`, 'error');
@@ -53,10 +53,12 @@ export function Charters() {
       <section className="card" style={{ marginTop: 12, overflow: 'hidden', position: 'relative' }}>
         <div className="row wrap" style={{ alignItems: 'stretch', gap: 0 }}>
           <div style={{ flex: '1 1 420px', padding: '28px 30px' }}>
+            <img src={BRAND.full} alt="Payment Integrity IGNITE" style={{ height: 46, display: 'block', marginBottom: 12 }} />
             <div className="eyebrow">Project Charters</div>
             <h1>Define, align and deliver</h1>
             <p className="muted" style={{ maxWidth: 520, marginTop: 6 }}>
               Every project has one SBF Project Charter. Continue where you left off, mark charters complete and download the latest version as Word or PDF.
+              Charter Status is separate from Project Status — completing a charter never changes the project's status.
             </p>
             <div className="row wrap" style={{ marginTop: 20, gap: 12 }}>
               {CHARTER_STATUSES.map((s) => (
@@ -96,7 +98,7 @@ export function Charters() {
           <div className="table-wrap">
             <table className="table">
               <thead>
-                <tr><th>Project</th><th>Owner</th><th>Project Status</th><th>Charter</th><th>Last saved</th><th style={{ textAlign: 'right' }}>Actions</th></tr>
+                <tr><th>Project</th><th>Owner</th><th>Project Status</th><th>Charter Status</th><th>Last saved</th><th style={{ textAlign: 'right' }}>Actions</th></tr>
               </thead>
               <tbody>
                 {rows.map((p) => {

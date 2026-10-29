@@ -2,7 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, FolderKanban, Plus } from 'lucide-react';
 import { Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { CHARACTERS } from '../characters';
+import { BRAND, CHARACTERS } from '../characters';
 import { StatusBadge } from '../components/Badges';
 import { EmptyState, Loading } from '../components/EmptyState';
 import { ProjectTable } from '../components/ProjectTable';
@@ -50,7 +50,7 @@ export function Dashboard() {
     <div className="stack">
       <section className="hero" style={{ marginTop: 12 }}>
         <div className="hero-copy">
-          <span className="hero-tag"><i /> SBF Tower · Ideas & Improvement Portfolio</span>
+          <span className="hero-tag"><img src={BRAND.fire} alt="" /> {BRAND.name} · SBF Tower Ideas & Improvement Portfolio</span>
           <h1>Every idea, initiative and project — in one place.</h1>
           <p>Track the SBF Tower portfolio from first spark to implementation, keep project charters current, and give leadership a clear view at a glance.</p>
           <div className="hero-stats">

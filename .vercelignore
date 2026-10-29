@@ -1,0 +1,10 @@
+# Never upload local data or secrets to Vercel
+server/data
+.env
+.env.*
+!.env.example
+node_modules
+dist
+*.sqlite
+*.tmp
+scripts/*.py

@@ -3,12 +3,17 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "server": "node server/server.cjs",
     "build": "tsc && vite build",
     "start": "npm run build && node server/server.cjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "hash-password": "node scripts/hash-password.cjs",
+    "migrate:sqlite-to-pg": "node scripts/migrate-sqlite-to-postgres.cjs"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -17,6 +22,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.378.0",
+    "pg": "8.23.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.23.1",
@@ -24,6 +30,7 @@
     "sql.js": "^1.10.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",

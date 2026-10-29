@@ -43,6 +43,8 @@ export interface Project {
   updated_at: string;
   charter_status: CharterStatus;
   charter_updated_at: string | null;
+  timeline_total: number;
+  timeline_completed: number;
 }
 
 export type ProjectInput = Pick<Project, 'title' | 'description' | 'owner' | 'functional_area' | 'ops_manager' | 'status' | 'link'>;
@@ -57,10 +59,20 @@ export interface Milestone {
 export const TIMELINE_PHASES = ['Collaborate', 'Understand', 'Redesign', 'Execute', 'Sustain'] as const;
 export type TimelinePhase = (typeof TIMELINE_PHASES)[number];
 
+/** Legacy single-task-per-phase timeline (kept for older charters; superseded by TimelineActivity). */
 export interface TimelineEntry {
   task: string;
   start: string;
   end: string;
+}
+
+export interface KeyMetric {
+  id: string;
+  metric: string;
+  definition: string;
+  target: string;
+  baseline: string;
+  impact: string;
 }
 
 export interface CharterData {
@@ -70,10 +82,14 @@ export interface CharterData {
   executiveSponsor: string;
   lineOfBusiness: string;
   executionLead: string;
+  curesLead: string;
   problemStatement: string;
+  /** Shown as "Engagement Goals" (template wording). */
   projectGoals: string;
+  keyMetrics: KeyMetric[];
   inScope: string;
   outOfScope: string;
+  constraints: string;
   deliverables: string;
   businessImpact: string;
   raci: { responsible: string; accountable: string; consulted: string; informed: string };
@@ -81,14 +97,53 @@ export interface CharterData {
   timeline: Record<TimelinePhase, TimelineEntry>;
 }
 
+export const ACTIVITY_STATUSES = ['Not Started', 'In Progress', 'Completed', 'On Hold', 'Delayed'] as const;
+export type ActivityStatus = (typeof ACTIVITY_STATUSES)[number];
+
+export const ACTIVITY_META: Record<ActivityStatus, { color: string; bg: string; fg: string }> = {
+  'Not Started': { color: '#B7B2C6', bg: '#F1F0F5', fg: '#4D4762' },
+  'In Progress': { color: '#44B8F3', bg: '#E1ECFF', fg: '#14679A' },
+  Completed:     { color: '#00B8BA', bg: '#D9F5F5', fg: '#007476' },
+  'On Hold':     { color: '#E8A33D', bg: '#FFF3DF', fg: '#8A5A00' },
+  Delayed:       { color: '#D6456E', bg: '#FCE8EE', fg: '#A3204A' },
+};
+
+export interface TimelineActivity {
+  id: string;
+  project_id?: string;
+  phase: TimelinePhase;
+  task: string;
+  start_date: string;
+  end_date: string;
+  status: ActivityStatus;
+  progress: number | null;
+  depends_on: string;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StatusHistoryEntry {
+  id: string;
+  project_id: string;
+  from_status: ProjectStatus | null;
+  to_status: ProjectStatus;
+  changed_at: string;
+  changed_by: string;
+  note: string;
+}
+
 export interface Charter {
   project_id: string;
   data: CharterData;
   status: Exclude<CharterStatus, 'Not Started'>;
+  completeness?: number | null;
   created_at: string;
   updated_at: string;
 }
 
 export interface ProjectDetail extends Project {
   charter: Charter | null;
+  timeline: TimelineActivity[];
+  status_history: StatusHistoryEntry[];
 }

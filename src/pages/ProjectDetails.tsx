@@ -21,7 +21,8 @@ import { downloadCharterDocx, downloadCharterPdf } from '../utils/exportCharter'
 import { formatDate, timeAgo } from '../utils/format';
 import { resolveLink } from '../utils/links';
 
-export function ProjectDetails() {
+/** readOnly: used by the MANAGERS account — shows everything, hides every edit action. */
+export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}) {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -149,10 +150,11 @@ export function ProjectDetails() {
   return (
     <>
       <div className="crumbs">
-        <Link to="/projects">All Projects</Link>
+        <Link to={readOnly ? '/managers/projects' : '/projects'}>{readOnly ? 'SBF Projects' : 'All Projects'}</Link>
         <ChevronRight size={14} />
         <span>{project.title}</span>
       </div>
+      {readOnly && <div className="filter-note" role="status">Read-only view for the MANAGERS account. Project, charter and timeline changes are made by the project team (IGNITE).</div>}
 
       <div className="two-col" style={{ marginTop: 12 }}>
         <section className="card">
@@ -165,14 +167,16 @@ export function ProjectDetails() {
             <h1>{project.title}</h1>
             <p className="muted small">Created {formatDate(project.created_at)} · Updated {timeAgo(project.updated_at)}</p>
             <div className="detail-actions">
-              <button className="btn btn-primary" onClick={() => navigate(`/projects/${project.id}/edit`)}><Pencil size={15} /> Edit Project</button>
-              {statusMenu}
+              {!readOnly && <button className="btn btn-primary" onClick={() => navigate(`/projects/${project.id}/edit`)}><Pencil size={15} /> Edit Project</button>}
+              {!readOnly && statusMenu}
               <button className="btn btn-secondary" disabled={!hasLink} onClick={() => open(project.link)} title={hasLink ? project.link : 'No project link added'}>
                 {canOpen || !hasLink ? <ExternalLink size={15} /> : <Copy size={15} />} {canOpen || !hasLink ? 'Open Project Link' : 'Copy Project Link'}
               </button>
-              <button className="btn btn-accent" onClick={() => navigate(`/projects/${project.id}/charter`)}>
-                <FileText size={15} /> {charter ? 'Edit Project Charter' : 'Create Project Charter'}
-              </button>
+              {!readOnly && (
+                <button className="btn btn-accent" onClick={() => navigate(`/projects/${project.id}/charter`)}>
+                  <FileText size={15} /> {charter ? 'Edit Project Charter' : 'Create Project Charter'}
+                </button>
+              )}
             </div>
           </div>
           <div className="meta-grid">
@@ -209,7 +213,7 @@ export function ProjectDetails() {
                 </div>
               ))}
               <div className="stack" style={{ gap: 8, marginTop: 16 }}>
-                <button className="btn btn-primary" onClick={() => navigate(`/projects/${project.id}/charter`)}><Pencil size={15} /> Edit Project Charter</button>
+                {!readOnly && <button className="btn btn-primary" onClick={() => navigate(`/projects/${project.id}/charter`)}><Pencil size={15} /> Edit Project Charter</button>}
                 <div className="row">
                   <button className="btn btn-secondary" style={{ flex: 1 }} disabled={!!busy} onClick={() => download('docx')}><FileDown size={15} /> {busy === 'docx' ? 'Preparing…' : 'Word'}</button>
                   <button className="btn btn-secondary" style={{ flex: 1 }} disabled={!!busy} onClick={() => download('pdf')}><FileDown size={15} /> {busy === 'pdf' ? 'Preparing…' : 'PDF'}</button>
@@ -220,7 +224,7 @@ export function ProjectDetails() {
             <div className="card-body" style={{ textAlign: 'center' }}>
               <img src={CHARACTERS.alex} alt="" style={{ height: 150, margin: '4px auto 12px', display: 'block' }} />
               <p className="muted small" style={{ marginBottom: 14 }}>Define the problem, goals, key metrics, scope and CURES timeline in the SBF Project Charter.</p>
-              <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => navigate(`/projects/${project.id}/charter`)}><FileText size={15} /> Create Project Charter</button>
+              {!readOnly && <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => navigate(`/projects/${project.id}/charter`)}><FileText size={15} /> Create Project Charter</button>}
               <div className="row" style={{ marginTop: 8 }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} disabled title="Create the charter first"><FileDown size={15} /> Word</button>
                 <button className="btn btn-secondary" style={{ flex: 1 }} disabled title="Create the charter first"><FileDown size={15} /> PDF</button>
@@ -240,7 +244,7 @@ export function ProjectDetails() {
             </div>
           </div>
           <div className="row wrap">
-            {draft ? (
+            {readOnly ? null : draft ? (
               <>
                 <button className="btn btn-ghost" onClick={() => setDraft(null)} disabled={busy === 'timeline'}>Cancel</button>
                 <button className="btn btn-primary" onClick={saveTimeline} disabled={busy === 'timeline'}><Save size={15} /> {busy === 'timeline' ? 'Saving…' : 'Save timeline'}</button>
@@ -279,14 +283,14 @@ export function ProjectDetails() {
           </div>
         ) : hasTimeline ? (
           <div className="card-body" style={{ paddingTop: 8 }}>
-            <Gantt activities={project.timeline} onStatusChange={changeActivityStatus} busyId={busy} />
-            <p className="small muted" style={{ marginTop: 10 }}>Tip: click an activity's status to update it. Activity statuses are independent of the project status.</p>
+            <Gantt activities={project.timeline} onStatusChange={readOnly ? undefined : changeActivityStatus} busyId={busy} />
+            {!readOnly && <p className="small muted" style={{ marginTop: 10 }}>Tip: click an activity's status to update it. Activity statuses are independent of the project status.</p>}
           </div>
         ) : (
           <EmptyState
             image={CHARACTERS.iggy}
             title="No timeline activities yet."
-            action={<button className="btn btn-primary" onClick={() => setDraft([emptyActivity()])}><Plus size={16} /> Add CURES timeline activities</button>}
+            action={readOnly ? undefined : <button className="btn btn-primary" onClick={() => setDraft([emptyActivity()])}><Plus size={16} /> Add CURES timeline activities</button>}
           >
             Add activities to the CURES timeline to generate the Gantt chart.
           </EmptyState>
@@ -298,7 +302,7 @@ export function ProjectDetails() {
           <section className="card">
             <div className="card-head"><h3>Description</h3></div>
             <div className="card-body">
-              {project.description ? <p className="prose">{project.description}</p> : <p className="muted">No description yet. <Link to={`/projects/${project.id}/edit`}>Add one</Link>.</p>}
+              {project.description ? <p className="prose">{project.description}</p> : <p className="muted">No description yet.{!readOnly && <> <Link to={`/projects/${project.id}/edit`}>Add one</Link>.</>}</p>}
             </div>
           </section>
           <section className="card">
@@ -310,12 +314,14 @@ export function ProjectDetails() {
                   {canOpen && <button className="btn btn-ghost btn-icon" title="Open" onClick={() => open(project.link)}><ExternalLink size={16} /></button>}
                   <button className="btn btn-ghost btn-icon" title="Copy" onClick={() => copy(project.link)}><Copy size={15} /></button>
                 </div>
-              ) : <p className="muted">No link added. <Link to={`/projects/${project.id}/edit`}>Add a link</Link>.</p>}
+              ) : <p className="muted">No link added.{!readOnly && <> <Link to={`/projects/${project.id}/edit`}>Add a link</Link>.</>}</p>}
             </div>
           </section>
-          <section>
-            <button className="btn btn-danger btn-sm" onClick={remove}><Trash2 size={14} /> Delete project</button>
-          </section>
+          {!readOnly && (
+            <section>
+              <button className="btn btn-danger btn-sm" onClick={remove}><Trash2 size={14} /> Delete project</button>
+            </section>
+          )}
         </div>
 
         <section className="card">

@@ -34,21 +34,32 @@ function config() {
   const passwordHash = (process.env.AUTH_PASSWORD_HASH || '').trim();
   const secret = process.env.AUTH_SECRET || '';
   const hours = Number(process.env.AUTH_SESSION_HOURS) || 12;
-  return { username, passwordHash, secret, hours, configured: !!passwordHash && secret.length >= 32 };
+  // Two separate application accounts: IGNITE (project hub) and MANAGERS (Senior Manager savings module)
+  const accounts = [
+    { username, passwordHash, role: 'ignite' },
+    { username: (process.env.MANAGERS_USERNAME || 'MANAGERS').trim(), passwordHash: (process.env.MANAGERS_PASSWORD_HASH || '').trim(), role: 'managers' },
+  ].filter((a) => a.passwordHash);
+  return { username, passwordHash, secret, hours, accounts, configured: !!passwordHash && secret.length >= 32 };
+}
+
+/** Finds the account for a username (case-insensitive, exact length). */
+function findAccount(name) {
+  const n = String(name || '').trim().toUpperCase();
+  return config().accounts.find((a) => a.username.toUpperCase() === n) || null;
 }
 
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 const sign = (payload, secret) => crypto.createHmac('sha256', secret).update(payload).digest('base64url');
 
-function createSessionToken(username) {
+function createSessionToken(username, role = 'ignite') {
   const { secret, hours } = config();
   const now = Date.now();
-  const payload = b64url(JSON.stringify({ u: username, iat: now, exp: now + hours * 3600_000 }));
+  const payload = b64url(JSON.stringify({ u: username, r: role, iat: now, exp: now + hours * 3600_000 }));
   return { token: `${payload}.${sign(payload, secret)}`, expiresAt: new Date(now + hours * 3600_000).toISOString(), maxAge: hours * 3600 };
 }
 
 function verifySessionToken(token) {
-  const { secret, username, configured } = config();
+  const { secret, configured, accounts } = config();
   if (!configured || !token || typeof token !== 'string') return null;
   const [payload, sig] = token.split('.');
   if (!payload || !sig) return null;
@@ -57,8 +68,10 @@ function verifySessionToken(token) {
   if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) return null;
   try {
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    if (data.u !== username || typeof data.exp !== 'number' || data.exp < Date.now()) return null;
-    return { username: data.u, expiresAt: new Date(data.exp).toISOString() };
+    const role = data.r || 'ignite'; // sessions issued before roles existed belong to IGNITE
+    const account = accounts.find((a) => a.username === data.u && a.role === role);
+    if (!account || typeof data.exp !== 'number' || data.exp < Date.now()) return null;
+    return { username: data.u, role, expiresAt: new Date(data.exp).toISOString() };
   } catch {
     return null;
   }
@@ -99,7 +112,13 @@ function requireAuth(req, res, next) {
   next();
 }
 
+/** Restricts a route to one or more roles ('ignite' | 'managers'). */
+const requireRole = (...roles) => (req, res, next) =>
+  roles.includes(req.session?.role)
+    ? next()
+    : res.status(403).json({ error: 'This area is not available for the signed-in account.', code: 'wrong_role' });
+
 module.exports = {
-  COOKIE, hashPassword, verifyPassword, config, createSessionToken, verifySessionToken,
-  setSessionCookie, clearSessionCookie, sessionOf, requireAuth,
+  COOKIE, hashPassword, verifyPassword, config, findAccount, createSessionToken, verifySessionToken,
+  setSessionCookie, clearSessionCookie, sessionOf, requireAuth, requireRole,
 };

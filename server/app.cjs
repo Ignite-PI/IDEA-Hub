@@ -25,8 +25,16 @@ function createApp() {
     try { await repo.init(); } catch (e) { database = `error: ${e.message}`; }
     res.json({ storage: repo.providerKey, database, ai: aiStatus().configured, auth: auth.config().configured, vercel: !!process.env.VERCEL });
   });
-  // Non-destructive import of data exported from the legacy local SQLite database (signed-in only)
-  app.post('/api/admin/import', async (req, res, next) => {
+  // Senior Manager savings module — MANAGERS account only
+  app.use('/api/savings', auth.requireRole('managers'), require('./routes/savings.cjs'));
+  app.use('/api/ai', require('./routes/ai.cjs'));
+  // MANAGERS may read project data (linked project details / charter / Gantt) but never change it
+  app.use('/api', (req, res, next) =>
+    req.session.role === 'managers' && req.method !== 'GET'
+      ? res.status(403).json({ error: 'The MANAGERS account has read-only access to projects.', code: 'read_only' })
+      : next());
+  // Non-destructive import of data exported from the legacy local SQLite database (IGNITE only)
+  app.post('/api/admin/import', auth.requireRole('ignite'), async (req, res, next) => {
     try {
       if (!repo.importLegacyData) return res.status(400).json({ error: 'Import is only available on the Postgres database.' });
       const d = req.body ?? {};
@@ -35,7 +43,6 @@ function createApp() {
     } catch (e) { next(e); }
   });
   app.use('/api', require('./routes/projects.cjs'));
-  app.use('/api/ai', require('./routes/ai.cjs'));
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found' }));
 
   app.use((err, _req, res, _next) => {

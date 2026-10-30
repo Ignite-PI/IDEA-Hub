@@ -1,16 +1,25 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Eye, EyeOff, Lock, LogIn, User } from 'lucide-react';
+import { AlertCircle, BarChart3, Eye, EyeOff, FolderKanban, Lock, LogIn, User } from 'lucide-react';
 import { BRAND, CHARACTERS } from '../characters';
-import { useAuth } from '../components/Auth';
+import { homeFor, useAuth, type Role } from '../components/Auth';
 
 /** Only allow same-app paths as the post-login destination (prevents open redirects). */
-const safeNext = (v: string | null) => (v && v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/login') ? v : '/');
+const safeNext = (v: string | null) => (v && v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/login') ? v : null);
+/** A requested page is only honoured if it belongs to the signed-in account's area. */
+const destination = (next: string | null, role: Role) =>
+  next && (role === 'managers') === next.startsWith('/managers') ? next : homeFor(role);
+
+const ENTRIES: { role: Role; title: string; sub: string; icon: typeof FolderKanban }[] = [
+  { role: 'ignite', title: 'Project Hub', sub: 'IGNITE · submit and manage projects', icon: FolderKanban },
+  { role: 'managers', title: 'Senior Managers', sub: 'MANAGERS · 30% savings dashboard', icon: BarChart3 },
+];
 
 export function SignIn() {
   const { state, signIn } = useAuth();
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const [entry, setEntry] = useState<Role>(params.get('account') === 'managers' || params.get('next')?.startsWith('/managers') ? 'managers' : 'ignite');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -19,7 +28,7 @@ export function SignIn() {
   const [capsLock, setCapsLock] = useState(false);
   const next = safeNext(params.get('next'));
 
-  if (state.status === 'signed-in') return <Navigate to={next} replace />;
+  if (state.status === 'signed-in') return <Navigate to={destination(next, state.role)} replace />;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,8 +36,8 @@ export function SignIn() {
     setBusy(true);
     setError(null);
     try {
-      await signIn(username.trim(), password);
-      navigate(next, { replace: true });
+      const role = await signIn(username.trim(), password);
+      navigate(destination(next, role), { replace: true });
     } catch (err) {
       setError((err as Error).message || 'Sign-in failed. Please try again.');
       setPassword('');
@@ -53,7 +62,18 @@ export function SignIn() {
         <form className="signin-card" onSubmit={submit} noValidate aria-labelledby="signin-title">
           <img src={BRAND.full} alt="Payment Integrity IGNITE" className="signin-logo" />
           <h2 id="signin-title">Sign in to {BRAND.name}</h2>
-          <p className="muted small" style={{ marginBottom: 18 }}>Use the shared IGNITE account to continue.</p>
+          <div className="signin-entries" role="tablist" aria-label="Choose your sign-in">
+            {ENTRIES.map((en) => (
+              <button key={en.role} type="button" role="tab" aria-selected={entry === en.role}
+                className={`signin-entry${entry === en.role ? ' on' : ''}`} onClick={() => { setEntry(en.role); setError(null); }}>
+                <en.icon size={18} />
+                <span><b>{en.title}</b><small>{en.sub}</small></span>
+              </button>
+            ))}
+          </div>
+          <p className="muted small" style={{ marginBottom: 18 }}>
+            {entry === 'managers' ? 'Use the shared MANAGERS account for the Senior Manager savings module.' : 'Use the shared IGNITE account to continue.'}
+          </p>
 
           {params.get('expired') && !error && (
             <div className="signin-note" role="status">Your session has ended. Please sign in again.</div>
@@ -67,7 +87,7 @@ export function SignIn() {
             <div className="input-icon">
               <User size={16} />
               <input id="username" className="input" autoComplete="username" autoCapitalize="characters" spellCheck={false}
-                value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
+                value={username} onChange={(e) => setUsername(e.target.value)} autoFocus placeholder={entry === 'managers' ? 'MANAGERS' : 'IGNITE'} />
             </div>
           </div>
           <div className="field" style={{ marginTop: 14 }}>

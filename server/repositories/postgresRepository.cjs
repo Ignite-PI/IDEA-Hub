@@ -195,6 +195,7 @@ async function importLegacyData(data) {
 module.exports = {
   name: 'postgres',
   init,
+  db,
   importLegacyData,
   listProjects, getProject, getProjectRow, createProject, updateProject, deleteProject,
   getCharter, saveCharter,

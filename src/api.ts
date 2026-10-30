@@ -41,7 +41,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export interface SessionInfo { authenticated: boolean; username?: string; expiresAt?: string }
+export interface SessionInfo { authenticated: boolean; username?: string; role?: 'ignite' | 'managers'; expiresAt?: string }
+
+/** A Manager Input record as stored (inputs + server-calculated columns). */
+export interface SavingsInitiative {
+  id: string;
+  initiative_no: number;
+  project_id: string | null;
+  ops_manager: string; area: string; functional_area: string; process: string; initiative_name: string;
+  savings_track: string; savings_lever: string; savings_outcome: string; status: string;
+  baseline_volume: number | null; baseline_aht: number | null; future_volume: number | null; future_aht: number | null;
+  productive_hours: number | null;
+  current_hourly_rate: number | null; future_hourly_rate: number | null;
+  current_annual_rate: number | null; future_annual_rate: number | null;
+  confidence: number | null; realization: number | null;
+  baseline_workload_fte: number; future_workload_fte: number; capacity_fte_released: number; hc_reduction_fte: number;
+  extra_capacity_fte: number; rate_card_savings: number; gross_annual_savings: number; risk_adjusted_savings: number;
+  target_start: string; expected_completion: string; last_updated: string;
+  executive_story: string; evidence: string;
+  owner_signoff: 'Yes' | 'No' | null; finance_validated: 'Yes' | 'No' | null; project_charter_manual: 'Y' | 'N' | null;
+  timeline_text: string; fte_text: string; raci_r: string; raci_a: string; raci_c: string; raci_i: string;
+  source_key: string | null; import_notes: string; created_at: string; updated_at: string; updated_by: string;
+}
+export interface SavingsBootstrap {
+  lists: Record<string, string[]>;
+  settings: Record<string, number>;
+  initiatives: SavingsInitiative[];
+  projects: import('../shared/savingsResolve').LinkedProjectInfo[];
+}
 
 const send = <T>(method: string, path: string, body?: unknown) =>
   request<T>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -73,6 +100,16 @@ export const api = {
     send<TimelineActivity[]>('PUT', `/projects/${id}/timeline`, { activities }),
   updateActivity: (activityId: string, patch: Partial<Pick<TimelineActivity, 'status' | 'progress'>>) =>
     send<TimelineActivity>('PATCH', `/timeline/${activityId}`, patch),
+
+  savings: {
+    bootstrap: () => request<SavingsBootstrap>('/savings/bootstrap'),
+    create: (data: Partial<SavingsInitiative>) => send<SavingsInitiative>('POST', '/savings/initiatives', data),
+    update: (id: string, data: Partial<SavingsInitiative>) => send<SavingsInitiative>('PUT', `/savings/initiatives/${id}`, data),
+    remove: (id: string) => send<{ success: boolean }>('DELETE', `/savings/initiatives/${id}`),
+    updateSettings: (patch: Record<string, number>) => send<Record<string, number>>('PUT', '/savings/settings', patch),
+    addListValue: (list_key: string, value: string) => send<Record<string, string[]>>('POST', '/savings/lists', { list_key, value }),
+    exportUrl: () => `${BASE}/api/savings/export`,
+  },
 
   ai: {
     status: () => request<AiStatus>('/ai/status'),

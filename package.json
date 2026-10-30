@@ -18,6 +18,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "docx": "^8.5.0",
+    "exceljs": "4.4.0",
     "express": "^4.19.2",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",

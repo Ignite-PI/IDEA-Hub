@@ -11,13 +11,44 @@ import { ProjectDetails } from './pages/ProjectDetails';
 import { CharterBuilder } from './pages/CharterBuilder';
 import { Charters } from './pages/Charters';
 import { SignIn } from './pages/SignIn';
+import { SavingsProvider } from './managers/SavingsContext';
+import { ManagerLayout } from './managers/ManagerLayout';
+import { SavingsDashboard } from './managers/SavingsDashboard';
+import { ManagerInput } from './managers/ManagerInput';
+import { InitiativeEditor } from './managers/InitiativeEditor';
+import { InstructionsPage } from './managers/InstructionsPage';
+import { StoryboardPage } from './managers/StoryboardPage';
+import { ManagerProjects } from './managers/ManagerProjects';
 
 const router = createBrowserRouter([
   { path: '/login', element: <SignIn /> },
   {
-    // Every application page sits behind the sign-in check; data providers mount only after sign-in
+    // Senior Manager savings module — MANAGERS account only
+    path: '/managers',
     element: (
-      <RequireAuth>
+      <RequireAuth role="managers">
+        <ProjectsProvider>
+          <SavingsProvider>
+            <ManagerLayout />
+          </SavingsProvider>
+        </ProjectsProvider>
+      </RequireAuth>
+    ),
+    children: [
+      { index: true, element: <SavingsDashboard /> },
+      { path: 'input', element: <ManagerInput /> },
+      { path: 'input/:id', element: <InitiativeEditor /> },
+      { path: 'storyboard', element: <StoryboardPage /> },
+      { path: 'instructions', element: <InstructionsPage /> },
+      { path: 'projects', element: <ManagerProjects /> },
+      { path: 'projects/:id', element: <ProjectDetails readOnly /> },
+      { path: '*', element: <Navigate to="/managers" replace /> },
+    ],
+  },
+  {
+    // Project hub — IGNITE account; data providers mount only after sign-in
+    element: (
+      <RequireAuth role="ignite">
         <AiStatusProvider>
           <ProjectsProvider>
             <Layout />

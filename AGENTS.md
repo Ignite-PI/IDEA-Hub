@@ -16,6 +16,14 @@ Production: https://idea-hub-zeta.vercel.app (Vercel project `idea-hub`, team `i
 - Files: no binary files are stored. Word/PDF are generated in the browser. If attachments are added, store blobs in Vercel Blob (free tier) and only URL/metadata in Postgres.
 - Auth: single shared account (`server/auth.cjs`, `server/routes/auth.cjs`). Env: `AUTH_USERNAME`=IGNITE, `AUTH_PASSWORD_HASH` (scrypt, from `node scripts/hash-password.cjs`), `AUTH_SECRET` (signs HttpOnly `sbf_session` cookie, 12h). All `/api` except `/api/auth/*` and `/api/health` require the session; mutating requests also need header `X-SBF-Client: 1`. Failed logins throttled per IP in `login_attempts`. Rotating `AUTH_SECRET` signs everyone out. The plain password is never stored in code/repo/bundle.
 - AI: `server/ai/*` (Azure OpenAI, optional). Not configured → UI shows a friendly message; nothing else depends on it.
+- Second account MANAGERS (`MANAGERS_USERNAME`, `MANAGERS_PASSWORD_HASH`): session cookie carries role `ignite` | `managers`. `/api/savings/*` = managers only; managers get read-only (GET) access to project routes; IGNITE cannot use savings routes. Frontend: `RequireAuth role=...`, IGNITE app at `/`, managers app at `/managers/*` (`src/managers/`).
+- Senior Manager savings module = port of `../30% Savings Calculation Template File_SBF for edit.xlsx` (source of truth).
+  - Formulas: `shared/savingsCalc.js` (used by browser AND server; verified against workbook cached values, 235 checks). Keep Excel semantics (blank = 0, IFERROR → 0, Additional-Work baseline uses future volume when higher, non-Rate-Card outcomes use V×P).
+  - Project link / Charter Y/N / RACI source / missing-data rules: `shared/savingsResolve.js`. Texts (Instructions, Storyboard, column help): `shared/savingsContent.js`.
+  - DB: migration v2 — `savings_initiatives` (project_id FK unique, calculated columns stored on save), `savings_lists` (dropdowns from the Lists tab), `savings_settings` (benchmarks). Repo: `server/repositories/savingsRepository.cjs` (Postgres/PGlite only).
+  - Hourly rates are per initiative; annual = hourly × productive hours, else manual annual. Never a global default rate.
+  - Excel export: `server/savingsExport.cjs` (exceljs; live formulas + cached results, dropdown validations; no charts).
+  - Workbook import: `node scripts/savings-workbook-to-json.cjs <xlsx> out.json` then POST `{rows}` to `/api/savings/import` as MANAGERS (idempotent by `source_key`).
 
 ## Rules
 - Project Status, Charter Status, Charter Completeness and Timeline Progress are independent. Charter save/complete/download and timeline changes NEVER change project status or write status history.

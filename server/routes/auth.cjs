@@ -10,7 +10,7 @@ const clientKey = (req) => `ip:${String(req.get('x-forwarded-for') || req.ip || 
 router.get('/session', (req, res) => {
   const s = auth.sessionOf(req);
   res.set('Cache-Control', 'no-store');
-  res.json(s ? { authenticated: true, username: s.username, expiresAt: s.expiresAt } : { authenticated: false });
+  res.json(s ? { authenticated: true, username: s.username, role: s.role, expiresAt: s.expiresAt } : { authenticated: false });
 });
 
 router.post('/login', async (req, res, next) => {
@@ -29,18 +29,19 @@ router.post('/login', async (req, res, next) => {
 
     const username = String(req.body?.username ?? '').trim();
     const password = String(req.body?.password ?? '');
-    const userOk = username.length === cfg.username.length && username.toUpperCase() === cfg.username.toUpperCase();
-    const passOk = auth.verifyPassword(password, cfg.passwordHash); // always evaluated (no timing shortcut)
-    if (!userOk || !passOk || !password) {
+    const account = auth.findAccount(username);
+    // Always run one hash check (against a real account hash when unknown) so timing doesn't reveal valid usernames
+    const passOk = auth.verifyPassword(password, account ? account.passwordHash : cfg.passwordHash);
+    if (!account || !passOk || !password) {
       await repo.recordLoginFailure(key, LIMITS);
       await sleep(400);
       return res.status(401).json({ error: 'Incorrect username or password.', code: 'invalid_credentials' });
     }
 
     await repo.clearLoginFailures(key);
-    const { token, expiresAt, maxAge } = auth.createSessionToken(cfg.username);
+    const { token, expiresAt, maxAge } = auth.createSessionToken(account.username, account.role);
     auth.setSessionCookie(req, res, token, maxAge);
-    res.json({ authenticated: true, username: cfg.username, expiresAt });
+    res.json({ authenticated: true, username: account.username, role: account.role, expiresAt });
   } catch (e) {
     next(e);
   }

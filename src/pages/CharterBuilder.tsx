@@ -30,6 +30,8 @@ const RACI = [
   { key: 'informed', letter: 'I', label: 'Informed', hint: 'Kept up to date · one or more people', color: '#44B8F3', multiple: true },
 ] as const;
 const PEOPLE_FIELDS = new Set(['businessOwner', 'executiveSponsor', 'executionLead', 'curesLead']);
+// Business Owner and Executive Sponsor may hold several people; the two leads stay one person (they follow the Project Owner)
+const MULTI_PEOPLE = new Set(['businessOwner', 'executiveSponsor']);
 
 const SECTIONS = [
   { key: 'information', label: 'Project Information' },
@@ -212,7 +214,7 @@ export function CharterBuilder() {
       label={label}
       hint={opts.hint}
       full={opts.full ?? true}
-      required={key !== 'constraints'}
+      required={key !== 'constraints' && key !== 'deliverables'}
       invalid={miss(key)}
       action={<AiAssistButton field={label} value={data[key]} onChange={(v) => set(key, v)} getContext={getContext} extraActions={opts.ai} />}
     >
@@ -280,7 +282,7 @@ export function CharterBuilder() {
               return (
                 <button key={s.key} className={`step${activeSection === s.key ? ' active' : ''}${done ? ' done' : ''}`} onClick={() => scrollTo(s.key)}>
                   <span className="num">{done ? <Check size={14} /> : i + 1}</span>
-                  <span>{s.label}<small>{sp.done} of {sp.total} complete</small></span>
+                  <span>{s.label}<small>{sp.optional ? `Optional · ${sp.done} of ${sp.total} filled` : `${sp.done} of ${sp.total} complete`}</small></span>
                 </button>
               );
             })}
@@ -308,12 +310,13 @@ export function CharterBuilder() {
                 const auto = isLead && !!ownerName && (data.leadsFromOwner?.[key] ?? false) && data[key] === ownerName;
                 const hint = isLead
                   ? auto ? 'Same as Project Owner (updates automatically)' : ownerName ? 'Changed manually' : undefined
-                  : key === 'businessOwner' ? 'Owner for the LOB / business area — separate from the Project Owner' : undefined;
+                  : key === 'businessOwner' ? 'One or more owners of the LOB / business area — separate from the Project Owner'
+                    : key === 'executiveSponsor' ? 'One or more executive sponsors' : undefined;
                 return (
                   <Field key={key} label={label} full={key === 'projectTitle'} required invalid={miss(key)} hint={hint}
                     action={isLead && !auto && ownerName ? <button type="button" className="btn btn-ghost btn-sm" onClick={() => resetLead(key)}><RotateCcw size={13} /> Use Project Owner</button> : undefined}>
                     {PEOPLE_FIELDS.has(key) ? (
-                      <PeoplePicker value={data[key]} multiple={false} options={people} ariaLabel={label} invalid={miss(key)}
+                      <PeoplePicker value={data[key]} multiple={MULTI_PEOPLE.has(key)} options={people} ariaLabel={label} invalid={miss(key)}
                         onChange={(v) => (isLead ? setLead(key as 'executionLead' | 'curesLead', v) : set(key, v))} />
                     ) : (
                       <input className="input" aria-label={label} value={data[key]} onChange={(e) => set(key, e.target.value)}
@@ -379,13 +382,13 @@ export function CharterBuilder() {
             </div>
           </Section>
 
-          <Section id="raci" refFn={sectionRef('raci')} icon={<Users size={18} />} title="RACI" subtitle="Clarify who does what">
+          <Section id="raci" refFn={sectionRef('raci')} icon={<Users size={18} />} title="RACI" subtitle="Clarify who does what · optional">
             <div className="raci-grid">
               {RACI.map((r) => (
                 <div key={r.key} className={`raci-card${miss(`raci.${r.key}`) ? ' invalid' : ''}`}>
                   <div className="row">
                     <span className="raci-letter" style={{ background: r.color }}>{r.letter}</span>
-                    <div><div style={{ fontWeight: 700 }}>{r.label}<span className="req">*</span></div><div className="small muted">{r.hint}</div></div>
+                    <div><div style={{ fontWeight: 700 }}>{r.label} <span className="small muted" style={{ fontWeight: 500 }}>(optional)</span></div><div className="small muted">{r.hint}</div></div>
                   </div>
                   <PeoplePicker value={data.raci[r.key]} multiple={r.multiple} options={people} ariaLabel={`RACI ${r.label}`} invalid={miss(`raci.${r.key}`)}
                     onChange={(v) => set('raci', { ...data.raci, [r.key]: v })} placeholder={r.multiple ? 'Search or type names / roles…' : 'Search or type one name / role…'} />
@@ -396,7 +399,7 @@ export function CharterBuilder() {
           </Section>
 
           <Section
-            id="milestones" refFn={sectionRef('milestones')} icon={<ClipboardList size={18} />} title="Milestones / Tasks" subtitle="Key checkpoints and the people responsible"
+            id="milestones" refFn={sectionRef('milestones')} icon={<ClipboardList size={18} />} title="Milestones / Tasks" subtitle="Key checkpoints and the people responsible · optional"
             action={
               <div className="row">
                 <AiRowsButton

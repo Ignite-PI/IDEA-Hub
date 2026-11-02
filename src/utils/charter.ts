@@ -73,33 +73,43 @@ export interface SectionProgress {
   label: string;
   done: number;
   total: number;
+  /** Optional sections are shown in the checklist but never count against completeness. */
+  optional?: boolean;
 }
 
-/** Charter completeness: how much of the charter document is filled in. Says nothing about project delivery. */
+/**
+ * Charter completeness: how much of the REQUIRED charter content is filled in. Says nothing about project delivery.
+ * RACI, Milestones / Tasks and Project Deliverables are optional; Key Metrics stay required.
+ */
 export function charterProgress(c: CharterData, activities: TimelineActivity[] = []): { sections: SectionProgress[]; percent: number } {
   const sections: SectionProgress[] = [
     {
       key: 'information', label: 'Project Information', total: 7,
       done: [c.projectTitle, c.businessFunction, c.businessOwner, c.executiveSponsor, c.lineOfBusiness, c.executionLead, c.curesLead].filter(filled).length,
     },
-    { key: 'definition', label: 'Problem, Goals & Impact', total: 4, done: [c.problemStatement, c.projectGoals, c.businessImpact, c.deliverables].filter(filled).length },
-    { key: 'metrics', label: 'Key Metrics', total: 1, done: c.keyMetrics.some((m) => filled(m.metric)) ? 1 : 0 },
-    { key: 'scope', label: 'Scope & Constraints', total: 3, done: [c.inScope, c.outOfScope, c.constraints].filter(filled).length },
-    { key: 'raci', label: 'RACI', total: 4, done: Object.values(c.raci).filter(filled).length },
-    { key: 'milestones', label: 'Milestones / Tasks', total: 1, done: c.milestones.some((m) => filled(m.task)) ? 1 : 0 },
+    { key: 'definition', label: 'Problem, Goals & Impact', total: 3, done: [c.problemStatement, c.projectGoals, c.businessImpact].filter(filled).length },
+    { key: 'metrics', label: 'Key Metrics', total: 1, done: c.keyMetrics.some((m) => filled(m.metric) && filled(m.target)) ? 1 : 0 },
+    { key: 'scope', label: 'Scope & Constraints', total: 2, done: [c.inScope, c.outOfScope].filter(filled).length },
+    { key: 'raci', label: 'RACI', total: 4, done: Object.values(c.raci).filter(filled).length, optional: true },
+    { key: 'milestones', label: 'Milestones / Tasks', total: 1, done: c.milestones.some((m) => filled(m.task)) ? 1 : 0, optional: true },
+    { key: 'deliverables', label: 'Project Deliverables', total: 1, done: filled(c.deliverables) ? 1 : 0, optional: true },
     {
       key: 'timeline', label: 'CURES Timeline', total: TIMELINE_PHASES.length,
       done: TIMELINE_PHASES.filter((p) => activities.some((a) => a.phase === p && filled(a.task) && a.start_date && a.end_date)).length,
     },
   ];
-  const done = sections.reduce((s, x) => s + x.done, 0);
-  const total = sections.reduce((s, x) => s + x.total, 0);
+  const required = sections.filter((s) => !s.optional);
+  const done = required.reduce((s, x) => s + x.done, 0);
+  const total = required.reduce((s, x) => s + x.total, 0);
   return { sections, percent: Math.round((done / total) * 100) };
 }
 
 export interface MissingItem { key: string; section: string; label: string }
 
-/** Required content before a charter can be marked Completed (all template sections are required; Constraints is optional). */
+/**
+ * Required content before a charter can be marked Completed.
+ * Optional: Constraints, Project Deliverables, RACI, Milestones / Tasks. Key Metrics remain required (at least one).
+ */
 export function charterMissing(c: CharterData, activities: TimelineActivity[] = []): MissingItem[] {
   const out: MissingItem[] = [];
   const need = (key: string, section: string, label: string, ok: boolean) => { if (!ok) out.push({ key, section, label }); };
@@ -111,12 +121,9 @@ export function charterMissing(c: CharterData, activities: TimelineActivity[] = 
   need('problemStatement', 'definition', 'Problem Statement', filled(c.problemStatement));
   need('projectGoals', 'definition', 'Engagement Goals', filled(c.projectGoals));
   need('businessImpact', 'definition', 'Business Impact / Benefit', filled(c.businessImpact));
-  need('deliverables', 'definition', 'Project Deliverables', filled(c.deliverables));
   need('keyMetrics', 'metrics', 'At least one Key Metric with a name and target', c.keyMetrics.some((m) => filled(m.metric) && filled(m.target)));
   need('inScope', 'scope', 'In Scope', filled(c.inScope));
   need('outOfScope', 'scope', 'Out of Scope', filled(c.outOfScope));
-  for (const k of ['responsible', 'accountable', 'consulted', 'informed'] as const) need(`raci.${k}`, 'raci', `RACI – ${k[0]!.toUpperCase()}${k.slice(1)}`, filled(c.raci[k]));
-  need('milestones', 'milestones', 'At least one Milestone / Task', c.milestones.some((m) => filled(m.task)));
   for (const p of TIMELINE_PHASES) {
     need(`timeline.${p}`, 'timeline', `CURES ${p}: an activity with start and end dates`,
       activities.some((a) => a.phase === p && filled(a.task) && !!a.start_date && !!a.end_date));

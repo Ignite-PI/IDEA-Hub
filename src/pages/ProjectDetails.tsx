@@ -210,7 +210,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
               {completeness.sections.map((s) => (
                 <div key={s.key} className="section-check">
                   {s.done === s.total ? <CheckCircle2 size={16} className="ok" /> : s.done ? <CircleDashed size={16} className="partial" /> : <Circle size={16} className="none" />}
-                  {s.label}
+                  {s.label}{s.optional && <span className="small muted"> · optional</span>}
                   <span className="n">{s.done}/{s.total}</span>
                 </div>
               ))}

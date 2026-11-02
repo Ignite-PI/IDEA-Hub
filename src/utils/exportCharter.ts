@@ -124,8 +124,8 @@ export async function downloadCharterDocx(d: CharterData, timeline: TimelineActi
     row([cell('Project Title', { w: iw[0]!, label: true }), cell(d.projectTitle, { w: FULL - iw[0]!, span: 5, bold: true })]),
     row([
       cell('Business Function', { w: iw[0]!, label: true }), cell(d.businessFunction, { w: iw[1]! }),
-      cell('Business Owner', { w: iw[2]!, label: true }), cell(d.businessOwner, { w: iw[3]! }),
-      cell('Executive Sponsor', { w: iw[4]!, label: true }), cell(d.executiveSponsor, { w: iw[5]! }),
+      cell('Business Owner', { w: iw[2]!, label: true }), cell(peopleLines(d.businessOwner), { w: iw[3]! }),
+      cell('Executive Sponsor', { w: iw[4]!, label: true }), cell(peopleLines(d.executiveSponsor), { w: iw[5]! }),
     ]),
     row([
       cell('Line of Business', { w: iw[0]!, label: true }), cell(d.lineOfBusiness, { w: iw[1]! }),
@@ -285,7 +285,7 @@ export async function downloadCharterPdf(d: CharterData, timeline: TimelineActiv
   header('Project Charter');
   block([
     [L('Project Title'), { content: val(d.projectTitle), colSpan: 5, styles: { fontStyle: 'bold' } }],
-    [L('Business Function'), val(d.businessFunction), L('Business Owner'), val(d.businessOwner), L('Executive Sponsor'), val(d.executiveSponsor)],
+    [L('Business Function'), val(d.businessFunction), L('Business Owner'), peopleLines(d.businessOwner), L('Executive Sponsor'), peopleLines(d.executiveSponsor)],
     [L('Line of Business'), val(d.lineOfBusiness), L('Execution Lead'), val(d.executionLead), L('CURES Lead'), val(d.curesLead)],
   ], { 0: { cellWidth: w(10.7) }, 1: { cellWidth: w(26.9) }, 2: { cellWidth: w(11.4) }, 3: { cellWidth: w(19.6) }, 4: { cellWidth: w(12.9) }, 5: { cellWidth: w(18.5) } });
 
@@ -461,7 +461,7 @@ export async function downloadCharterPptx(
   s1.addText('SBF PROJECT CHARTER', { x: 0.8, y: 1.9, w: 11.5, h: 0.4, fontFace: FONT, fontSize: 14, bold: true, color: '9DE3E4', charSpacing: 4 });
   s1.addText(title, { x: 0.8, y: 2.35, w: 11.8, h: 1.4, fontFace: FONT, fontSize: 38, bold: true, color: 'FFFFFF', valign: 'top', fit: 'shrink' });
   const people: [string, string][] = ([
-    ['Project Owner', meta?.owner ?? ''], ['Business Owner', d.businessOwner], ['Executive Sponsor', d.executiveSponsor],
+    ['Project Owner', meta?.owner ?? ''], ['Business Owner', peopleLines(d.businessOwner).replace(/\n/g, ', ')], ['Executive Sponsor', peopleLines(d.executiveSponsor).replace(/\n/g, ', ')],
     ['Execution Lead', d.executionLead], ['CURES Lead', d.curesLead], ['Business Function', d.businessFunction], ['Line of Business', d.lineOfBusiness],
   ] as [string, string][]).filter(([, v]) => val(v));
   people.forEach(([k, v], i) => {

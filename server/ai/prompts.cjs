@@ -8,7 +8,9 @@ Rules:
 - Where a specific value is needed but not provided, use a clearly marked placeholder in square brackets, e.g. [baseline %] or [target date].
 - Write clear, concise, professional business English suitable for leadership.
 - Return only the requested content: no preamble, no explanations, no markdown headings, no surrounding quotes.
-- For lists, put each item on its own line starting with "- ".`;
+- For lists, put each item on its own line starting with "- ". For ordered steps use "1. ", "2. " ….
+- Separate paragraphs with one blank line. A field may mix paragraphs and lists.
+- Keep the input's existing structure (paragraphs, bullet points, numbering and **bold** text) unless the action asks to change it.`;
 
 const TEXT_ACTIONS = {
   rephrase: 'Rephrase the text while keeping its meaning.',

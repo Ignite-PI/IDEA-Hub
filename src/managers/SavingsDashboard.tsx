@@ -1,6 +1,6 @@
 import { useState, type ComponentType } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Pencil, Save, ShieldAlert, Target, TrendingUp, Users, Zap } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Pencil, Save, ShieldAlert, Table2, Target, TrendingUp, Users, Zap } from 'lucide-react';
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
@@ -29,6 +29,7 @@ export function SavingsDashboard() {
           <h1>Savings Summary</h1>
           <p>Live portfolio view calculated from every Manager Input record{activeFilterCount ? ' — filtered' : ''}.</p>
         </div>
+        <button className="btn btn-secondary" onClick={() => navigate('/managers/grid')}><Table2 size={16} /> Open Grid View</button>
       </div>
 
       <SavingsFilterBar compact />

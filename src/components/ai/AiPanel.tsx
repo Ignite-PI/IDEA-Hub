@@ -3,6 +3,7 @@ import { ChevronDown, Copy, CornerDownLeft, Send, Sparkles, X } from 'lucide-rea
 import { api, type AiContext } from '../../api';
 import { copyText } from '../../utils/links';
 import { Menu } from '../Menu';
+import { RichTextView } from '../RichText';
 import { useToast } from '../Toast';
 import { useAiStatus } from './AiContext';
 
@@ -99,7 +100,7 @@ export function AiPanel({ getContext, targets }: { getContext: () => AiContext; 
             {e.reply && (
               <div className="ai-a">
                 <span className="ai-tag"><Sparkles size={11} /> AI suggestion — review before using</span>
-                <div className="prose small" style={{ marginTop: 6 }}>{e.reply}</div>
+                <div className="prose small" style={{ marginTop: 6 }}><RichTextView value={e.reply} /></div>
                 <div className="row wrap" style={{ marginTop: 10, gap: 6 }}>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={async () => { await copyText(e.reply!); toast('Suggestion copied'); }}><Copy size={13} /> Copy</button>
                   {targets.length > 0 && (

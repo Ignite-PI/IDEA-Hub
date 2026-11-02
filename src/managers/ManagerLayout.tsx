@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { BookOpen, ClipboardList, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Presentation } from 'lucide-react';
+import { BookOpen, ClipboardList, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Presentation, Table2 } from 'lucide-react';
 import { BRAND } from '../characters';
 import { useAuth } from '../components/Auth';
 import { Loading } from '../components/EmptyState';
@@ -29,6 +29,7 @@ export function ManagerLayout() {
         <div className="nav-label">Savings</div>
         <NavLink to="/managers" end className="nav-link"><LayoutDashboard size={18} /> Savings Summary</NavLink>
         <NavLink to="/managers/input" className="nav-link"><ClipboardList size={18} /> Manager Input {incomplete > 0 && <span className="count warn" title="Records needing information">{incomplete}</span>}</NavLink>
+        <NavLink to="/managers/grid" className="nav-link"><Table2 size={18} /> Grid View</NavLink>
         <NavLink to="/managers/storyboard" className="nav-link"><Presentation size={18} /> Storyboard</NavLink>
         <NavLink to="/managers/instructions" className="nav-link"><BookOpen size={18} /> Instructions</NavLink>
         <div className="nav-label">Reference</div>

@@ -19,6 +19,7 @@ import { InitiativeEditor } from './managers/InitiativeEditor';
 import { InstructionsPage } from './managers/InstructionsPage';
 import { StoryboardPage } from './managers/StoryboardPage';
 import { ManagerProjects } from './managers/ManagerProjects';
+import { GridView } from './managers/GridView';
 
 const router = createBrowserRouter([
   { path: '/login', element: <SignIn /> },
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
       { index: true, element: <SavingsDashboard /> },
       { path: 'input', element: <ManagerInput /> },
       { path: 'input/:id', element: <InitiativeEditor /> },
+      { path: 'grid', element: <GridView /> },
       { path: 'storyboard', element: <StoryboardPage /> },
       { path: 'instructions', element: <InstructionsPage /> },
       { path: 'projects', element: <ManagerProjects /> },

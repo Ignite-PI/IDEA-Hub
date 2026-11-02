@@ -4,6 +4,7 @@ import { api, type AiContext } from '../../api';
 import { copyText } from '../../utils/links';
 import { Menu } from '../Menu';
 import { Modal } from '../Modal';
+import { RichTextEditor, RichTextView } from '../RichText';
 import { useToast } from '../Toast';
 import { TEXT_ACTION_LABELS, WRITING_ACTIONS, useAiStatus } from './AiContext';
 
@@ -123,14 +124,15 @@ function TextSuggestModal({ action, field, original, getContext, onClose, onAppl
       <div className="ai-compare">
         <div>
           <div className="ai-col-label">Original</div>
-          <div className="ai-original">{original.trim() ? original : <span className="muted">(empty)</span>}</div>
+          <div className="ai-original"><RichTextView value={original} empty={<span className="muted">(empty)</span>} /></div>
         </div>
         <div>
           <div className="ai-col-label"><span className="ai-tag"><Sparkles size={11} /> AI suggestion</span> <span className="muted small">editable before you apply it</span></div>
           {phase.state === 'loading' && <AiLoading />}
           {phase.state === 'error' && <AiError message={phase.message} />}
           {phase.state === 'text' && (
-            <textarea className="textarea ai-suggestion" value={suggestion} onChange={(e) => setPhase({ state: 'text', suggestion: e.target.value })} rows={10} />
+            // Formatted, editable suggestion: AI bullets / numbering stay bullets when applied
+            <RichTextEditor value={suggestion} onChange={(v) => setPhase({ state: 'text', suggestion: v })} minRows={9} ariaLabel="AI suggestion" />
           )}
         </div>
       </div>

@@ -23,11 +23,13 @@ export function emptyCharter(project?: Pick<Project, 'title' | 'owner' | 'functi
   return {
     projectTitle: project?.title ?? '',
     businessFunction: project?.functional_area ?? '',
-    businessOwner: project?.owner ?? '',
+    // Business Owner is the LOB / business-area owner — a separate person, never copied from the Project Owner
+    businessOwner: '',
     executiveSponsor: '',
     lineOfBusiness: '',
-    executionLead: '',
-    curesLead: '',
+    executionLead: project?.owner ?? '',
+    curesLead: project?.owner ?? '',
+    leadsFromOwner: { executionLead: true, curesLead: true },
     problemStatement: '',
     projectGoals: '',
     keyMetrics: [emptyMetric()],
@@ -46,9 +48,15 @@ export function emptyCharter(project?: Pick<Project, 'title' | 'owner' | 'functi
 export function normalizeCharter(data: Partial<CharterData> | undefined, project?: Project): CharterData {
   const base = emptyCharter(project);
   if (!data) return base;
+  // Older charters had no override flags: a lead only follows the owner if it is still empty (never overwrite saved names)
+  const flags = data.leadsFromOwner ?? { executionLead: !data.executionLead?.trim(), curesLead: !data.curesLead?.trim() };
+  const owner = project?.owner?.trim() ?? '';
   return {
     ...base,
     ...data,
+    leadsFromOwner: flags,
+    executionLead: flags.executionLead && owner ? owner : data.executionLead ?? '',
+    curesLead: flags.curesLead && owner ? owner : data.curesLead ?? '',
     raci: { ...base.raci, ...data.raci },
     keyMetrics: data.keyMetrics?.length ? data.keyMetrics.map((m) => ({ ...emptyMetric(), ...m })) : base.keyMetrics,
     milestones: data.milestones?.length ? data.milestones : base.milestones,

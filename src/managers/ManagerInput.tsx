@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowUp, Link2, Plus } from 'lucide-react';
 import { fte, money, useSavings, type Enriched } from './SavingsContext';
 import { CharterYN, ExportButton, RecordStatus, SavingsFilterBar, YesNoPill } from './ui';
+import { ViewToggle } from './ViewToggle';
 
 type SortKey = 'no' | 'name' | 'risk' | 'fte' | 'issues';
 const sorters: Record<SortKey, (a: Enriched, b: Enriched) => number> = {
@@ -33,6 +34,7 @@ export function ManagerInput() {
           <p>One record per initiative. Open a record to enter assumptions — calculated values update instantly.</p>
         </div>
         <div className="row wrap">
+          <ViewToggle current="dashboard" />
           <ExportButton className="btn btn-secondary" />
           <button className="btn btn-primary" onClick={() => navigate('/managers/input/new')}><Plus size={16} /> New initiative</button>
         </div>

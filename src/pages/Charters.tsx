@@ -10,7 +10,7 @@ import { useProjects } from '../components/ProjectsContext';
 import { useToast } from '../components/Toast';
 import { CHARTER_META, CHARTER_STATUSES, type CharterStatus, type Project } from '../types';
 import { normalizeCharter } from '../utils/charter';
-import { downloadCharterDocx, downloadCharterPdf } from '../utils/exportCharter';
+import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx } from '../utils/exportCharter';
 import { timeAgo } from '../utils/format';
 
 export function Charters() {
@@ -34,12 +34,14 @@ export function Charters() {
       .sort((a, b) => order[a.charter_status] - order[b.charter_status] || (b.charter_updated_at ?? '').localeCompare(a.charter_updated_at ?? '') || a.title.localeCompare(b.title));
   }, [projects, filter, q]);
 
-  const download = async (p: Project, kind: 'docx' | 'pdf') => {
+  const download = async (p: Project, kind: 'docx' | 'pdf' | 'pptx') => {
     setBusy(`${p.id}:${kind}`);
     try {
       const detail = await api.getProject(p.id);
       const data = normalizeCharter(detail.charter?.data, detail);
-      await (kind === 'docx' ? downloadCharterDocx(data, detail.timeline) : downloadCharterPdf(data, detail.timeline));
+      if (kind === 'docx') await downloadCharterDocx(data, detail.timeline);
+      else if (kind === 'pdf') await downloadCharterPdf(data, detail.timeline);
+      else await downloadCharterPptx(data, detail.timeline, { status: detail.status, charterStatus: detail.charter?.status ?? 'In Progress', owner: detail.owner });
       toast(`Downloaded ${p.title} charter`);
     } catch (e) {
       toast(`Download failed: ${(e as Error).message}`, 'error');
@@ -57,7 +59,7 @@ export function Charters() {
             <div className="eyebrow">Project Charters</div>
             <h1>Define, align and deliver</h1>
             <p className="muted" style={{ maxWidth: 520, marginTop: 6 }}>
-              Every project has one SBF Project Charter. Continue where you left off, mark charters complete and download the latest version as Word or PDF.
+              Every project has one SBF Project Charter. Continue where you left off, mark charters complete and download the latest version as Word, PDF or PowerPoint.
               Charter Status is separate from Project Status — completing a charter never changes the project's status.
             </p>
             <div className="row wrap" style={{ marginTop: 20, gap: 12 }}>
@@ -117,6 +119,7 @@ export function Charters() {
                               <button className="btn btn-soft btn-sm" onClick={() => navigate(`/projects/${p.id}/charter`)}><Pencil size={13} /> Edit</button>
                               <button className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => download(p, 'docx')} title="Download Word"><FileDown size={13} /> {busy === `${p.id}:docx` ? '…' : 'Word'}</button>
                               <button className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => download(p, 'pdf')} title="Download PDF"><FileDown size={13} /> {busy === `${p.id}:pdf` ? '…' : 'PDF'}</button>
+                              <button className="btn btn-secondary btn-sm" disabled={!!busy} onClick={() => download(p, 'pptx')} title="Download PowerPoint"><FileDown size={13} /> {busy === `${p.id}:pptx` ? '…' : 'PowerPoint'}</button>
                             </>
                           ) : (
                             <button className="btn btn-accent btn-sm" onClick={() => navigate(`/projects/${p.id}/charter`)}><FileText size={13} /> Start charter</button>

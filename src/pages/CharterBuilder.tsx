@@ -11,21 +11,25 @@ import { EmptyState, Loading } from '../components/EmptyState';
 import { Gantt } from '../components/Gantt';
 import { Menu } from '../components/Menu';
 import { useProjects } from '../components/ProjectsContext';
+import { PeoplePicker, peopleOptions } from '../components/PeoplePicker';
+import { RichTextEditor } from '../components/RichText';
 import { TimelineEditor, timelineErrors } from '../components/TimelineEditor';
 import { useToast } from '../components/Toast';
 import { AiAssistButton, AiRowsButton } from '../components/ai/AiAssist';
 import { AiPanel, type InsertTarget } from '../components/ai/AiPanel';
 import type { Charter, CharterData, KeyMetric, Milestone, ProjectDetail, TimelineActivity } from '../types';
 import { charterMissing, charterProgress, emptyActivity, emptyMetric, emptyMilestone, enteredActivities, newId, normalizeCharter } from '../utils/charter';
-import { downloadCharterDocx, downloadCharterPdf } from '../utils/exportCharter';
+import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx } from '../utils/exportCharter';
 import { timeAgo } from '../utils/format';
 
+// Accountable stays a single owner (RACI rule); the other roles may hold several people
 const RACI = [
-  { key: 'responsible', letter: 'R', label: 'Responsible', hint: 'Does the work', color: '#5009B5' },
-  { key: 'accountable', letter: 'A', label: 'Accountable', hint: 'Owns the outcome', color: '#794CFF' },
-  { key: 'consulted', letter: 'C', label: 'Consulted', hint: 'Provides input', color: '#00B8BA' },
-  { key: 'informed', letter: 'I', label: 'Informed', hint: 'Kept up to date', color: '#44B8F3' },
+  { key: 'responsible', letter: 'R', label: 'Responsible', hint: 'Does the work · one or more people', color: '#5009B5', multiple: true },
+  { key: 'accountable', letter: 'A', label: 'Accountable', hint: 'Owns the outcome · one person', color: '#794CFF', multiple: false },
+  { key: 'consulted', letter: 'C', label: 'Consulted', hint: 'Provides input · one or more people', color: '#00B8BA', multiple: true },
+  { key: 'informed', letter: 'I', label: 'Informed', hint: 'Kept up to date · one or more people', color: '#44B8F3', multiple: true },
 ] as const;
+const PEOPLE_FIELDS = new Set(['businessOwner', 'executiveSponsor', 'executionLead', 'curesLead']);
 
 const SECTIONS = [
   { key: 'information', label: 'Project Information' },
@@ -48,7 +52,7 @@ export function CharterBuilder() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const { refresh } = useProjects();
+  const { refresh, projects } = useProjects();
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -164,17 +168,21 @@ export function CharterBuilder() {
     }
   };
 
-  const download = async (kind: 'docx' | 'pdf') => {
+  const download = async (kind: 'docx' | 'pdf' | 'pptx') => {
     if (!data) return;
     let acts = timeline;
+    let p = project;
     if (dirty || isNew) {
       const ok = await save(status, true);
       if (!ok) return;
       acts = ok.timeline;
+      p = ok;
     }
     try {
-      await (kind === 'docx' ? downloadCharterDocx(data, acts) : downloadCharterPdf(data, acts));
-      toast(`Saved and downloaded as ${kind === 'docx' ? 'Word' : 'PDF'}`);
+      if (kind === 'docx') await downloadCharterDocx(data, acts);
+      else if (kind === 'pdf') await downloadCharterPdf(data, acts);
+      else await downloadCharterPptx(data, acts, p ? { status: p.status, charterStatus: p.charter?.status ?? status, owner: p.owner } : undefined);
+      toast(`Saved and downloaded as ${kind === 'docx' ? 'Word' : kind === 'pdf' ? 'PDF' : 'PowerPoint'}`);
     } catch (e) {
       toast(`Download failed: ${(e as Error).message}`, 'error');
     }
@@ -208,9 +216,20 @@ export function CharterBuilder() {
       invalid={miss(key)}
       action={<AiAssistButton field={label} value={data[key]} onChange={(v) => set(key, v)} getContext={getContext} extraActions={opts.ai} />}
     >
-      <textarea className="textarea" rows={opts.rows ?? 4} value={data[key]} onChange={(e) => set(key, e.target.value)} placeholder={opts.placeholder} />
+      <RichTextEditor value={data[key]} onChange={(v) => set(key, v)} placeholder={opts.placeholder} minRows={opts.rows ?? 4} ariaLabel={label} invalid={miss(key)} />
     </Field>
   );
+  const people = peopleOptions(
+    ...projects.flatMap((p) => [p.owner, p.ops_manager]),
+    data.businessOwner, data.executiveSponsor, data.executionLead, data.curesLead,
+    data.raci.responsible, data.raci.accountable, data.raci.consulted, data.raci.informed,
+    ...data.milestones.map((m) => m.owner),
+  );
+  const ownerName = project.owner?.trim() ?? '';
+  const setLead = (key: 'executionLead' | 'curesLead', v: string) =>
+    setData((d) => (d ? { ...d, [key]: v, leadsFromOwner: { ...(d.leadsFromOwner ?? { executionLead: true, curesLead: true }), [key]: !!ownerName && v === ownerName } } : d));
+  const resetLead = (key: 'executionLead' | 'curesLead') =>
+    setData((d) => (d ? { ...d, [key]: ownerName, leadsFromOwner: { ...(d.leadsFromOwner ?? { executionLead: true, curesLead: true }), [key]: true } } : d));
 
   const aiTargets: InsertTarget[] = [
     { key: 'problemStatement', label: 'Problem Statement', insert: (t) => appendTo('problemStatement', t) },
@@ -246,6 +265,7 @@ export function CharterBuilder() {
             <>
               <button onClick={() => { close(); void download('docx'); }}><FileDown size={16} color="#2B579A" /> Microsoft Word (.docx)</button>
               <button onClick={() => { close(); void download('pdf'); }}><FileDown size={16} color="#B4234A" /> PDF (.pdf)</button>
+              <button onClick={() => { close(); void download('pptx'); }}><FileDown size={16} color="#C43E1C" /> PowerPoint (.pptx)</button>
             </>
           )}
         </Menu>
@@ -278,13 +298,30 @@ export function CharterBuilder() {
 
         <div className="stack">
           <Section id="information" refFn={sectionRef('information')} icon={<Info size={18} />} title="Project Information" subtitle="Who owns, sponsors and leads this project">
+            <p className="small muted" style={{ marginBottom: 12 }}>
+              Project Owner: <b>{ownerName || 'not set'}</b>. Execution Lead and CURES Lead follow the Project Owner automatically until you change them.
+              Business Owner is the owner for the line of business / business area and is entered separately.
+            </p>
             <div className="form-grid three">
-              {INFO_FIELDS.map(([key, label]) => (
-                <Field key={key} label={label} full={key === 'projectTitle'} required invalid={miss(key)}>
-                  <input className="input" aria-label={label} value={data[key]} onChange={(e) => set(key, e.target.value)}
-                    placeholder={key === 'projectTitle' ? project.title : undefined} />
-                </Field>
-              ))}
+              {INFO_FIELDS.map(([key, label]) => {
+                const isLead = key === 'executionLead' || key === 'curesLead';
+                const auto = isLead && !!ownerName && (data.leadsFromOwner?.[key] ?? false) && data[key] === ownerName;
+                const hint = isLead
+                  ? auto ? 'Same as Project Owner (updates automatically)' : ownerName ? 'Changed manually' : undefined
+                  : key === 'businessOwner' ? 'Owner for the LOB / business area — separate from the Project Owner' : undefined;
+                return (
+                  <Field key={key} label={label} full={key === 'projectTitle'} required invalid={miss(key)} hint={hint}
+                    action={isLead && !auto && ownerName ? <button type="button" className="btn btn-ghost btn-sm" onClick={() => resetLead(key)}><RotateCcw size={13} /> Use Project Owner</button> : undefined}>
+                    {PEOPLE_FIELDS.has(key) ? (
+                      <PeoplePicker value={data[key]} multiple={false} options={people} ariaLabel={label} invalid={miss(key)}
+                        onChange={(v) => (isLead ? setLead(key as 'executionLead' | 'curesLead', v) : set(key, v))} />
+                    ) : (
+                      <input className="input" aria-label={label} value={data[key]} onChange={(e) => set(key, e.target.value)}
+                        placeholder={key === 'projectTitle' ? project.title : undefined} />
+                    )}
+                  </Field>
+                );
+              })}
             </div>
           </Section>
 
@@ -293,7 +330,11 @@ export function CharterBuilder() {
               {textArea('problemStatement', 'Problem Statement', { hint: 'What is happening today, who is affected and why does it matter?', ai: ['improve_problem'], full: false, rows: 6 })}
               {textArea('projectGoals', 'Engagement Goals', { hint: 'What will success look like? Make goals measurable.', ai: ['improve_goals'], full: false, rows: 6 })}
               {textArea('businessImpact', 'Business Impact / Benefit', { hint: 'Savings, quality, experience or risk improvements expected.', ai: ['improve_impact'] })}
-              {textArea('deliverables', 'Project Deliverables', { ai: ['suggest_deliverables'] })}
+              {textArea('deliverables', 'Project Deliverables', {
+                ai: ['suggest_deliverables'],
+                hint: 'What needs to be accomplished or delivered in order to complete the project? List the tangible outputs or accomplishments required for successful completion.',
+                placeholder: 'e.g. a short intro, then bullets such as "- Updated intake workflow live in production"',
+              })}
             </div>
           </Section>
 
@@ -346,7 +387,8 @@ export function CharterBuilder() {
                     <span className="raci-letter" style={{ background: r.color }}>{r.letter}</span>
                     <div><div style={{ fontWeight: 700 }}>{r.label}<span className="req">*</span></div><div className="small muted">{r.hint}</div></div>
                   </div>
-                  <textarea className="textarea" aria-label={`RACI ${r.label}`} value={data.raci[r.key]} onChange={(e) => set('raci', { ...data.raci, [r.key]: e.target.value })} placeholder="Names or roles" />
+                  <PeoplePicker value={data.raci[r.key]} multiple={r.multiple} options={people} ariaLabel={`RACI ${r.label}`} invalid={miss(`raci.${r.key}`)}
+                    onChange={(v) => set('raci', { ...data.raci, [r.key]: v })} placeholder={r.multiple ? 'Search or type names / roles…' : 'Search or type one name / role…'} />
                   {miss(`raci.${r.key}`) && <span className="small" style={{ color: '#b4234a', fontWeight: 550 }}>Required</span>}
                 </div>
               ))}

@@ -17,7 +17,7 @@ import { TimelineEditor, timelineErrors } from '../components/TimelineEditor';
 import { useToast } from '../components/Toast';
 import { STATUSES, STATUS_META, type ActivityStatus, type ProjectDetail, type ProjectStatus, type TimelineActivity } from '../types';
 import { charterProgress, emptyActivity, enteredActivities, normalizeCharter, timelineProgress } from '../utils/charter';
-import { downloadCharterDocx, downloadCharterPdf } from '../utils/exportCharter';
+import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx } from '../utils/exportCharter';
 import { formatDate, timeAgo } from '../utils/format';
 import { resolveLink } from '../utils/links';
 
@@ -103,12 +103,14 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
     }
   };
 
-  const download = async (kind: 'docx' | 'pdf') => {
+  const download = async (kind: 'docx' | 'pdf' | 'pptx') => {
     if (!charter) return;
     setBusy(kind);
     try {
-      await (kind === 'docx' ? downloadCharterDocx(charter, project.timeline) : downloadCharterPdf(charter, project.timeline));
-      toast(`Charter downloaded as ${kind === 'docx' ? 'Word' : 'PDF'}`);
+      if (kind === 'docx') await downloadCharterDocx(charter, project.timeline);
+      else if (kind === 'pdf') await downloadCharterPdf(charter, project.timeline);
+      else await downloadCharterPptx(charter, project.timeline, { status: project.status, charterStatus: project.charter?.status ?? 'In Progress', owner: project.owner });
+      toast(`Charter downloaded as ${kind === 'docx' ? 'Word' : kind === 'pdf' ? 'PDF' : 'PowerPoint'}`);
     } catch (e) {
       toast(`Download failed: ${(e as Error).message}`, 'error');
     } finally {
@@ -217,6 +219,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
                 <div className="row">
                   <button className="btn btn-secondary" style={{ flex: 1 }} disabled={!!busy} onClick={() => download('docx')}><FileDown size={15} /> {busy === 'docx' ? 'Preparing…' : 'Word'}</button>
                   <button className="btn btn-secondary" style={{ flex: 1 }} disabled={!!busy} onClick={() => download('pdf')}><FileDown size={15} /> {busy === 'pdf' ? 'Preparing…' : 'PDF'}</button>
+                  <button className="btn btn-secondary" style={{ flex: 1 }} disabled={!!busy} onClick={() => download('pptx')}><FileDown size={15} /> {busy === 'pptx' ? 'Preparing…' : 'PowerPoint'}</button>
                 </div>
               </div>
             </div>

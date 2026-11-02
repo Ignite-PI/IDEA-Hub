@@ -3,6 +3,7 @@ import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ChevronRight, ExternalLink, Info, Link2, Plus, Save, Trash2, Unlink } from 'lucide-react';
 import { api, type SavingsInitiative } from '../api';
 import { useToast } from '../components/Toast';
+import { PeoplePicker, peopleOptions, splitPeople } from '../components/PeoplePicker';
 import { calcInitiative } from '../../shared/savingsCalc';
 import { COLUMNS } from '../../shared/savingsContent';
 import { initiativeIssues, resolveInitiative } from '../../shared/savingsResolve';
@@ -80,6 +81,10 @@ export function InitiativeEditor() {
     return <div className="card card-pad"><h3>Initiative not found</h3><p className="muted">It may have been deleted. <Link to="/managers/input">Back to Manager Input</Link></p></div>;
   }
 
+  const peopleList = peopleOptions(
+    ...all.flatMap((e) => [e.resolved.ops_manager.value, e.row.raci_r, e.row.raci_a, e.row.raci_c, e.row.raci_i]),
+    ...projects.flatMap((p) => [p.owner, p.ops_manager, p.raci?.responsible, p.raci?.accountable, p.raci?.consulted, p.raci?.informed]),
+  );
   const linkedElsewhere = new Set(all.filter((e) => e.row.project_id && e.row.id !== id).map((e) => e.row.project_id));
   const nameForMatch = (draft.initiative_name || '').trim().toLowerCase();
   const suggestions = !project && nameForMatch.length > 2
@@ -249,7 +254,13 @@ export function InitiativeEditor() {
             <div className="fe-grid">
               <div className="fe"><div className="fe-label"><label>Initiative ID</label><SourceTag kind="calc" label="Assigned automatically" /></div><div className="ro-value">{isNew ? 'Assigned on save' : existing!.row.initiative_no}</div></div>
               {linkedField('initiative_name', () => text('initiative_name'))}
-              {linkedField('ops_manager', () => text('ops_manager'))}
+              {linkedField('ops_manager', () => (
+                <div className={`fe${missing.has('ops_manager') ? ' miss' : ''}`}>
+                  {label('ops_manager')}
+                  <PeoplePicker value={draft.ops_manager} onChange={(v) => set('ops_manager', v)} multiple={false} options={peopleList} ariaLabel="Operations Manager" invalid={missing.has('ops_manager')} />
+                  <span className="fe-help">{help('ops_manager')}</span>
+                </div>
+              ))}
               {select('area', 'area', { addable: 'Area' })}
               {linkedField('functional_area', () => select('functional_area', 'functional_area', { addable: 'Functional Area' }))}
               {text('process')}
@@ -335,11 +346,13 @@ export function InitiativeEditor() {
                 const r = resolved.raci[letter];
                 const name = { R: 'Responsible', A: 'Accountable', C: 'Consulted', I: 'Informed' }[letter];
                 return r.source === 'charter' ? (
-                  <div key={letter} className="fe"><div className="fe-label"><label>{letter} — {name}</label><SourceTag kind="charter" /></div><div className="ro-value">{r.value}</div></div>
+                  <div key={letter} className="fe"><div className="fe-label"><label>{letter} — {name}</label><SourceTag kind="charter" /></div>
+                    <div className="ro-value people">{splitPeople(r.value).map((p) => <span key={p} className="pp-chip ro">{p}</span>)}</div></div>
                 ) : (
                   <div key={letter} className={`fe${r.source === 'missing' ? ' miss' : ''}`}>
                     <div className="fe-label"><label htmlFor={`f-${key}`}>{letter} — {name}</label><SourceTag kind={r.source === 'missing' ? 'missing' : 'manual'} label={r.source === 'missing' ? 'Needs information' : 'Entered manually'} /></div>
-                    <input id={`f-${key}`} className="input" value={draft[key]} onChange={(e) => set(key, e.target.value)} placeholder={project ? 'Not in the Project Charter — enter here' : 'Enter name(s)'} />
+                    <PeoplePicker value={draft[key]} onChange={(v) => set(key, v)} multiple={letter !== 'A'} options={peopleList} ariaLabel={`RACI ${letter} — ${name}`} invalid={r.source === 'missing'}
+                      placeholder={project ? 'Not in the Project Charter — search or type' : letter === 'A' ? 'Search or type one name' : 'Search or type names'} />
                   </div>
                 );
               })}

@@ -95,6 +95,8 @@ export interface CharterData {
   raci: { responsible: string; accountable: string; consulted: string; informed: string };
   milestones: Milestone[];
   timeline: Record<TimelinePhase, TimelineEntry>;
+  /** true = the lead follows the Project Owner automatically; false = intentionally overridden by the user. */
+  leadsFromOwner?: { executionLead: boolean; curesLead: boolean };
 }
 
 export const ACTIVITY_STATUSES = ['Not Started', 'In Progress', 'Completed', 'On Hold', 'Delayed'] as const;

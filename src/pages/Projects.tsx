@@ -4,6 +4,7 @@ import { AlertTriangle, Plus, Search, X } from 'lucide-react';
 import { CHARACTERS } from '../characters';
 import { EmptyState, Loading } from '../components/EmptyState';
 import { ProjectTable } from '../components/ProjectTable';
+import { MultiSelect } from '../components/MultiSelect';
 import { useProjects } from '../components/ProjectsContext';
 import { STATUSES } from '../types';
 import {
@@ -24,22 +25,27 @@ export function Projects() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
 
+  // Multi-select filters live in the URL as repeated params (?status=Idea&status=Approved), so links keep working
   const filters: Filters = {
     q: params.get('q') ?? '',
-    status: params.get('status') ?? '',
-    area: params.get('area') ?? '',
-    manager: params.get('manager') ?? '',
-    owner: params.get('owner') ?? '',
+    status: params.getAll('status').filter(Boolean),
+    area: params.getAll('area').filter(Boolean),
+    manager: params.getAll('manager').filter(Boolean),
+    owner: params.getAll('owner').filter(Boolean),
     needs: params.get('needs') ?? '',
   };
   const needsTitleCount = projects.filter(needsTitle).length;
   const [sortKey, sortDir] = (params.get('sort') ?? 'updated:desc').split(':') as [SortKey, SortDir];
 
-  const set = (updates: Record<string, string>) => {
+  const set = (updates: Record<string, string | string[]>) => {
     const next = new URLSearchParams(params);
-    for (const [k, v] of Object.entries(updates)) (v ? next.set(k, v) : next.delete(k));
+    for (const [k, v] of Object.entries(updates)) {
+      next.delete(k);
+      for (const x of Array.isArray(v) ? v : [v]) if (x) next.append(k, x);
+    }
     setParams(next, { replace: true });
   };
+  const clearAll = () => set({ q: '', status: [], area: [], manager: [], owner: [], needs: '' });
 
   const onSort = (key: SortKey) => {
     const defaultDir: SortDir = key === 'updated' || key === 'created' ? 'desc' : 'asc';
@@ -59,9 +65,11 @@ export function Projects() {
     [projects, params], // filters/sort are derived from params
   );
 
-  const active = (Object.keys(FILTER_LABELS) as (keyof typeof FILTER_LABELS)[]).filter((k) => filters[k]);
-  const anyFilter = active.length > 0 || !!filters.q;
-  const view = VIEWS.find((v) => v.status === filters.status) ?? VIEWS[0];
+  // One removable pill per selected value
+  const pills = (['status', 'area', 'manager', 'owner'] as const).flatMap((k) => filters[k].map((v) => ({ k, v })));
+  const anyFilter = pills.length > 0 || !!filters.q || !!filters.needs;
+  const singleStatus = filters.status.length === 1 ? filters.status[0] : filters.status.length ? null : '';
+  const view = VIEWS.find((v) => v.status === singleStatus) ?? VIEWS[0];
   const sortValue = `${sortKey}:${sortDir}`;
 
   return (
@@ -76,7 +84,7 @@ export function Projects() {
 
       <div className="tabs" style={{ marginBottom: 16 }}>
         {VIEWS.map((v) => (
-          <button key={v.label} className={`tab${v.status === filters.status ? ' active' : ''}`} onClick={() => set({ status: v.status })}>
+          <button key={v.label} className={`tab${v.status === singleStatus ? ' active' : ''}`} onClick={() => set({ status: v.status })}>
             {v.label}<span className="n">{v.status ? counts[v.status] : projects.length}</span>
           </button>
         ))}
@@ -92,22 +100,10 @@ export function Projects() {
             <Search size={16} />
             <input className="input" placeholder="Search title, description, people, link…" value={filters.q} onChange={(e) => set({ q: e.target.value })} />
           </div>
-          <select className="select" value={filters.status} onChange={(e) => set({ status: e.target.value })} aria-label="Status">
-            <option value="">All statuses</option>
-            {STATUSES.map((s) => <option key={s}>{s}</option>)}
-          </select>
-          <select className="select" value={filters.area} onChange={(e) => set({ area: e.target.value })} aria-label="Functional Area">
-            <option value="">All functional areas</option>
-            {options.area.map((s) => <option key={s}>{s}</option>)}
-          </select>
-          <select className="select" value={filters.manager} onChange={(e) => set({ manager: e.target.value })} aria-label="Operations Manager">
-            <option value="">All ops managers</option>
-            {options.manager.map((s) => <option key={s}>{s}</option>)}
-          </select>
-          <select className="select" value={filters.owner} onChange={(e) => set({ owner: e.target.value })} aria-label="Project Owner">
-            <option value="">All project owners</option>
-            {options.owner.map((s) => <option key={s}>{s}</option>)}
-          </select>
+          <MultiSelect label="Status" allLabel="All statuses" options={[...STATUSES]} value={filters.status} onChange={(v) => set({ status: v })} />
+          <MultiSelect label="Functional Area" allLabel="All functional areas" options={options.area} value={filters.area} onChange={(v) => set({ area: v })} />
+          <MultiSelect label="Operations Manager" allLabel="All ops managers" options={options.manager} value={filters.manager} onChange={(v) => set({ manager: v })} />
+          <MultiSelect label="Project Owner" allLabel="All project owners" options={options.owner} value={filters.owner} onChange={(v) => set({ owner: v })} />
           <select className="select" value={sortValue} onChange={(e) => set({ sort: e.target.value })} aria-label="Sort by">
             {!SORT_OPTIONS.some((o) => o.value === sortValue) && <option value={sortValue}>Custom column sort</option>}
             {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>Sort: {o.label}</option>)}
@@ -118,10 +114,11 @@ export function Projects() {
           <div className="active-filters">
             <span className="small muted" style={{ fontWeight: 600 }}>{results.length} result{results.length === 1 ? '' : 's'}</span>
             {filters.q && <button className="filter-pill" onClick={() => set({ q: '' })}>“{filters.q}” <X size={13} /></button>}
-            {active.map((k) => (
-              <button key={k} className="filter-pill" onClick={() => set({ [k]: '' })}>{FILTER_LABELS[k]}: {filters[k]} <X size={13} /></button>
+            {filters.needs === 'title' && <button className="filter-pill" onClick={() => set({ needs: '' })}>Needs Project Title <X size={13} /></button>}
+            {pills.map(({ k, v }) => (
+              <button key={`${k}:${v}`} className="filter-pill" onClick={() => set({ [k]: filters[k].filter((x) => x !== v) })}>{FILTER_LABELS[k]}: {v} <X size={13} /></button>
             ))}
-            <button className="btn btn-ghost btn-sm" onClick={() => set({ q: '', status: '', area: '', manager: '', owner: '' })}>Clear all</button>
+            <button className="btn btn-ghost btn-sm" onClick={clearAll}>Clear all</button>
           </div>
         )}
 
@@ -139,7 +136,7 @@ export function Projects() {
           <EmptyState
             image={CHARACTERS.iggy}
             title="No projects match these filters"
-            action={<button className="btn btn-secondary" onClick={() => set({ q: '', status: '', area: '', manager: '', owner: '' })}>Clear filters</button>}
+            action={<button className="btn btn-secondary" onClick={clearAll}>Clear filters</button>}
           >
             Try a different search term or remove a filter to widen the results.
           </EmptyState>

@@ -440,6 +440,21 @@ table.table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .required-summary { border-color: #f2c4d1; background: #fff8fa; color: #8e2445; }
 .field.invalid .textarea { border-color: #d6456e; box-shadow: 0 0 0 3px rgba(214, 69, 110, 0.14); }
 
+/* ─── Multi-select filter dropdown ───────────────────────────────────────── */
+.ms { position: relative; }
+.ms-trigger { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 170px; max-width: 240px; text-align: left; cursor: pointer; }
+.ms-trigger.on { border-color: var(--purple-light); background: var(--purple-pale); color: var(--purple); font-weight: 600; }
+.ms-sum { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-pop { position: absolute; z-index: 60; top: calc(100% + 6px); left: 0; min-width: 240px; max-width: 320px; background: #fff; border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; }
+.ms-search { height: 34px; margin-bottom: 6px; }
+.ms-list { max-height: 260px; overflow: auto; display: flex; flex-direction: column; }
+.ms-opt { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--text); }
+.ms-opt:hover { background: var(--purple-pale); }
+.ms-opt.on { font-weight: 650; color: var(--purple); }
+.ms-box { width: 16px; height: 16px; flex-shrink: 0; display: grid; place-items: center; border: 1.5px solid var(--border-strong); border-radius: 4px; background: #fff; color: #fff; }
+.ms-opt.on .ms-box { background: var(--purple); border-color: var(--purple); }
+.ms-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 4px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
+
 /* ─── Imported charter review / missing information ──────────────────────── */
 .review-card { border-color: #f2c4a0; }
 .section-icon.warn { background: #fff3df; color: #8a5a00; }

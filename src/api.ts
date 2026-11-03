@@ -33,7 +33,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch {
-    throw new ApiError('Could not reach the SBF Project Hub server. Check your connection and try again.', 0, 'network');
+    throw new ApiError('Could not reach the Clinical Towers Project Hub server. Check your connection and try again.', 0, 'network');
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));

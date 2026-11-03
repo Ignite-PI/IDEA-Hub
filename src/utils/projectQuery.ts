@@ -26,12 +26,13 @@ export const SORT_OPTIONS: { value: `${SortKey}:${SortDir}`; label: string }[] =
   { value: 'functional_area:asc', label: 'Functional Area (A–Z)' },
 ];
 
+/** Multi-select filters: a project matches a filter when its value is ANY of the selected values (empty = all). */
 export interface Filters {
   q: string;
-  status: string;
-  area: string;
-  manager: string;
-  owner: string;
+  status: string[];
+  area: string[];
+  manager: string[];
+  owner: string[];
   /** 'title' = only projects still titled "Needs Project Title" (e.g. imported charters without a title). */
   needs?: string;
 }
@@ -44,10 +45,10 @@ export function filterProjects(projects: Project[], f: Filters): Project[] {
   const q = f.q.trim().toLowerCase();
   return projects.filter((p) =>
     (f.needs !== 'title' || needsTitle(p)) &&
-    (!f.status || p.status === f.status) &&
-    (!f.area || p.functional_area === f.area) &&
-    (!f.manager || p.ops_manager === f.manager) &&
-    (!f.owner || p.owner === f.owner) &&
+    (!f.status.length || f.status.includes(p.status)) &&
+    (!f.area.length || f.area.includes(p.functional_area)) &&
+    (!f.manager.length || f.manager.includes(p.ops_manager)) &&
+    (!f.owner.length || f.owner.includes(p.owner)) &&
     (!q || [p.title, p.description, p.owner, p.functional_area, p.ops_manager, p.status, p.link].some((v) => v?.toLowerCase().includes(q))),
   );
 }

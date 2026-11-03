@@ -1,13 +1,13 @@
 import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, Plus, Search, X } from 'lucide-react';
 import { CHARACTERS } from '../characters';
 import { EmptyState, Loading } from '../components/EmptyState';
 import { ProjectTable } from '../components/ProjectTable';
 import { useProjects } from '../components/ProjectsContext';
 import { STATUSES } from '../types';
 import {
-  SORT_OPTIONS, VIEWS, countByStatus, distinct, filterProjects, sortProjects,
+  SORT_OPTIONS, VIEWS, countByStatus, distinct, filterProjects, needsTitle, sortProjects,
   type Filters, type SortDir, type SortKey,
 } from '../utils/projectQuery';
 
@@ -16,6 +16,7 @@ const FILTER_LABELS: Record<Exclude<keyof Filters, 'q'>, string> = {
   area: 'Functional Area',
   manager: 'Ops Manager',
   owner: 'Owner',
+  needs: 'Needs',
 };
 
 export function Projects() {
@@ -29,7 +30,9 @@ export function Projects() {
     area: params.get('area') ?? '',
     manager: params.get('manager') ?? '',
     owner: params.get('owner') ?? '',
+    needs: params.get('needs') ?? '',
   };
+  const needsTitleCount = projects.filter(needsTitle).length;
   const [sortKey, sortDir] = (params.get('sort') ?? 'updated:desc').split(':') as [SortKey, SortDir];
 
   const set = (updates: Record<string, string>) => {
@@ -77,6 +80,10 @@ export function Projects() {
             {v.label}<span className="n">{v.status ? counts[v.status] : projects.length}</span>
           </button>
         ))}
+        <button className={`tab tab-warn${filters.needs === 'title' ? ' active' : ''}`} onClick={() => set({ needs: filters.needs === 'title' ? '' : 'title' })}
+          title="Projects whose title still needs to be entered">
+          <AlertTriangle size={13} style={{ verticalAlign: -2 }} /> Needs Project Title<span className="n">{needsTitleCount}</span>
+        </button>
       </div>
 
       <div className="card">

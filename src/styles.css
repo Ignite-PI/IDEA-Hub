@@ -440,6 +440,23 @@ table.table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .required-summary { border-color: #f2c4d1; background: #fff8fa; color: #8e2445; }
 .field.invalid .textarea { border-color: #d6456e; box-shadow: 0 0 0 3px rgba(214, 69, 110, 0.14); }
 
+/* ─── Imported charter review / missing information ──────────────────────── */
+.review-card { border-color: #f2c4a0; }
+.section-icon.warn { background: #fff3df; color: #8a5a00; }
+.source-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; background: var(--cyan-pale); color: #14679a; font-size: 12px; font-weight: 650; }
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.review-grid > .review-item.title { grid-column: 1 / -1; }
+.review-h { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 8px; color: #6b4600; }
+.review-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.review-item { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; font-size: 13px; line-height: 1.4; }
+.review-item.rv { background: #fff3df; color: #5c3d00; }
+.review-item.ms { background: #fce8ee; color: #7d1f3d; }
+.review-item.title { background: #fce8ee; color: #7d1f3d; border: 1px solid #f2c4d1; }
+.review-item svg { flex-shrink: 0; margin-top: 2px; }
+.needs-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 99px; background: #fce8ee; color: #a3204a; border: 1px solid #f2c4d1; font-weight: 700; font-size: 12.5px; }
+.tab.tab-warn { color: #a3204a; }
+@media (max-width: 800px) { .review-grid { grid-template-columns: 1fr; } }
+
 /* ─── Project decks (SharePoint / OneDrive references) ───────────────────── */
 .deck-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .deck { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }

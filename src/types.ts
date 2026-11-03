@@ -97,6 +97,8 @@ export interface CharterData {
   timeline: Record<TimelinePhase, TimelineEntry>;
   /** true = the lead follows the Project Owner automatically; false = intentionally overridden by the user. */
   leadsFromOwner?: { executionLead: boolean; curesLead: boolean };
+  /** Present on charters imported from an existing Project Charter file (traceability + review items). */
+  importInfo?: { source: string; importedAt: string; needsReview: string[]; missing: string[] };
 }
 
 export const ACTIVITY_STATUSES = ['Not Started', 'In Progress', 'Completed', 'On Hold', 'Delayed'] as const;

@@ -32,11 +32,18 @@ export interface Filters {
   area: string;
   manager: string;
   owner: string;
+  /** 'title' = only projects still titled "Needs Project Title" (e.g. imported charters without a title). */
+  needs?: string;
 }
+
+/** Placeholder title for imported charters whose real title could not be identified. */
+export const NEEDS_TITLE = 'Needs Project Title';
+export const needsTitle = (p: Pick<Project, 'title'>) => p.title.trim().toLowerCase() === NEEDS_TITLE.toLowerCase();
 
 export function filterProjects(projects: Project[], f: Filters): Project[] {
   const q = f.q.trim().toLowerCase();
   return projects.filter((p) =>
+    (f.needs !== 'title' || needsTitle(p)) &&
     (!f.status || p.status === f.status) &&
     (!f.area || p.functional_area === f.area) &&
     (!f.manager || p.ops_manager === f.manager) &&

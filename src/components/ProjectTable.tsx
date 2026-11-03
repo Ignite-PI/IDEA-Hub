@@ -1,7 +1,7 @@
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Project } from '../types';
-import type { SortDir, SortKey } from '../utils/projectQuery';
+import { needsTitle, type SortDir, type SortKey } from '../utils/projectQuery';
 import { CharterBadge, StatusBadge } from './Badges';
 import { LinkIconButtons } from './LinkActions';
 import { Person } from './Person';
@@ -58,7 +58,9 @@ export function ProjectTable({ projects, sortKey, sortDir, onSort, compact }: Pr
           {projects.map((p) => (
             <tr key={p.id} onClick={() => navigate(`/projects/${p.id}`)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && navigate(`/projects/${p.id}`)}>
               <td style={{ minWidth: 200 }}>
-                <span className="cell-title">{p.title}</span>
+                <span className="cell-title">
+                  {needsTitle(p) ? <span className="needs-pill"><AlertTriangle size={12} aria-hidden /> Needs Project Title</span> : p.title}
+                </span>
                 <span className="cell-desc">{p.description || <span className="empty-dash">No description</span>}</span>
               </td>
               <td><Person name={p.owner} /></td>

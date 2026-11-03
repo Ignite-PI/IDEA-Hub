@@ -148,4 +148,18 @@ export interface ProjectDetail extends Project {
   charter: Charter | null;
   timeline: TimelineActivity[];
   status_history: StatusHistoryEntry[];
+  /** References to PowerPoint decks stored in SharePoint / OneDrive (no file content). */
+  decks?: ProjectDeck[];
+}
+
+export interface ProjectDeck {
+  id: string;
+  project_id: string;
+  name: string;
+  url: string;
+  description: string;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
 }

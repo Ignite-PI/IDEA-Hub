@@ -186,6 +186,25 @@ const MIGRATIONS = [
       ON CONFLICT DO NOTHING;
     `,
   },
+  {
+    version: 3,
+    name: 'project deck references',
+    sql: `
+      -- References to PowerPoint decks that live in SharePoint / OneDrive. No file content is ever stored here.
+      CREATE TABLE IF NOT EXISTS project_decks (
+        id          text PRIMARY KEY,
+        project_id  text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        name        text NOT NULL,
+        url         text NOT NULL,
+        description text NOT NULL DEFAULT '',
+        created_by  text NOT NULL DEFAULT '',
+        updated_by  text NOT NULL DEFAULT '',
+        created_at  timestamptz NOT NULL DEFAULT now(),
+        updated_at  timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX IF NOT EXISTS idx_project_decks_project ON project_decks(project_id, created_at);
+    `,
+  },
 ];
 
 async function migrate(driver) {

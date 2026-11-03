@@ -133,4 +133,65 @@ router.patch('/timeline/:activityId', wrap(async (req, res) => {
   res.json(updated);
 }));
 
+// ─── Project decks: references to PowerPoint files kept in SharePoint / OneDrive (no file upload, no file storage) ───
+// Company SharePoint / OneDrive for Business hosts. OneDrive for Business lives on <tenant>-my.sharepoint.com.
+const DECK_HOSTS = (process.env.DECK_ALLOWED_HOSTS || 'sharepoint.com,collaborate.wellpoint.com')
+  .split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+const deckHostAllowed = (host) => DECK_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+
+function cleanDeck(body) {
+  const name = String(body?.name ?? '').trim();
+  const url = String(body?.url ?? '').trim();
+  const description = String(body?.description ?? '').trim();
+  if (!name) return { error: 'Deck Name is required.' };
+  if (name.length > 200) return { error: 'Deck Name is too long (max 200 characters).' };
+  if (description.length > 1000) return { error: 'Description is too long (max 1000 characters).' };
+  if (!url) return { error: 'SharePoint / OneDrive Link is required.' };
+  if (url.length > 2048) return { error: 'The link is too long.' };
+  let parsed;
+  try { parsed = new URL(url); } catch { return { error: 'Enter a valid SharePoint or OneDrive link (https://…).' }; }
+  if (parsed.protocol !== 'https:') return { error: 'The link must start with https://.' };
+  if (parsed.username || parsed.password) return { error: 'Links must not contain a username or password.' };
+  if (!deckHostAllowed(parsed.hostname.toLowerCase())) {
+    return { error: 'Use a link to the company SharePoint or OneDrive for Business (e.g. …sharepoint.com or collaborate.wellpoint.com).' };
+  }
+  return { deck: { name, url: parsed.toString(), description } };
+}
+
+const decksAvailable = (res) => {
+  if (repo.listDecks) return true;
+  res.status(501).json({ error: 'Project Decks need the Postgres database (not the legacy local SQLite file).' });
+  return false;
+};
+
+router.get('/projects/:id/decks', wrap(async (req, res) => {
+  if (!decksAvailable(res)) return;
+  if (!(await repo.getProjectRow(req.params.id))) return res.status(404).json({ error: 'Project not found' });
+  res.json(await repo.listDecks(req.params.id));
+}));
+
+router.post('/projects/:id/decks', wrap(async (req, res) => {
+  if (!decksAvailable(res)) return;
+  if (!(await repo.getProjectRow(req.params.id))) return res.status(404).json({ error: 'Project not found' });
+  const { deck, error } = cleanDeck(req.body);
+  if (error) return res.status(400).json({ error });
+  res.status(201).json(await repo.createDeck(req.params.id, deck, userOf(req)));
+}));
+
+router.put('/decks/:deckId', wrap(async (req, res) => {
+  if (!decksAvailable(res)) return;
+  const { deck, error } = cleanDeck(req.body);
+  if (error) return res.status(400).json({ error });
+  const updated = await repo.updateDeck(req.params.deckId, deck, userOf(req));
+  if (!updated) return res.status(404).json({ error: 'Deck not found' });
+  res.json(updated);
+}));
+
+// Removes the reference only — the PowerPoint file in SharePoint / OneDrive is not deleted.
+router.delete('/decks/:deckId', wrap(async (req, res) => {
+  if (!decksAvailable(res)) return;
+  if (!(await repo.deleteDeck(req.params.deckId))) return res.status(404).json({ error: 'Deck not found' });
+  res.json({ success: true });
+}));
+
 module.exports = router;

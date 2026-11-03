@@ -1,6 +1,8 @@
 import type {
-  Charter, CharterData, Project, ProjectDetail, ProjectInput, ProjectStatus, StatusHistoryEntry, TimelineActivity,
+  Charter, CharterData, Project, ProjectDeck, ProjectDetail, ProjectInput, ProjectStatus, StatusHistoryEntry, TimelineActivity,
 } from './types';
+
+export interface DeckInput { name: string; url: string; description: string }
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 const USER_KEY = 'sbf.userName';
@@ -100,6 +102,11 @@ export const api = {
     send<TimelineActivity[]>('PUT', `/projects/${id}/timeline`, { activities }),
   updateActivity: (activityId: string, patch: Partial<Pick<TimelineActivity, 'status' | 'progress'>>) =>
     send<TimelineActivity>('PATCH', `/timeline/${activityId}`, patch),
+  // Project decks: SharePoint / OneDrive references only (no file upload)
+  listDecks: (projectId: string) => request<ProjectDeck[]>(`/projects/${projectId}/decks`),
+  addDeck: (projectId: string, deck: DeckInput) => send<ProjectDeck>('POST', `/projects/${projectId}/decks`, deck),
+  updateDeck: (deckId: string, deck: DeckInput) => send<ProjectDeck>('PUT', `/decks/${deckId}`, deck),
+  removeDeck: (deckId: string) => send<{ success: boolean }>('DELETE', `/decks/${deckId}`),
 
   savings: {
     bootstrap: () => request<SavingsBootstrap>('/savings/bootstrap'),

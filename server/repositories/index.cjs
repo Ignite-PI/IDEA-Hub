@@ -12,6 +12,8 @@
  *   listHistory(projectId)
  *   listTimeline(projectId) / replaceTimeline(projectId, activities) / getActivity(id) / updateActivity(id, patch)
  *   getLoginState(key) / recordLoginFailure(key, opts) / clearLoginFailures(key)
+ *   listDecks(projectId) / getDeck(id) / createDeck(projectId, deck, user) / updateDeck(id, deck, user) / deleteDeck(id)
+ *     (Postgres providers only — deck references; the PowerPoint files themselves stay in SharePoint / OneDrive)
  *
  * Providers:
  *   postgres — production (Vercel + Neon). Selected automatically when DATABASE_URL / POSTGRES_URL is set,

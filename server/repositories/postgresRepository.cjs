@@ -53,7 +53,41 @@ async function getProject(id) {
   const [project] = await d.query(`${PROJECT_SELECT} WHERE p.id = $1`, [id]);
   if (!project) return null;
   const [charter] = await d.query('SELECT * FROM charters WHERE project_id = $1', [id]);
-  return { ...mapProject(project), charter: mapCharter(charter) ?? null, timeline: await listTimeline(id), status_history: await listHistory(id) };
+  return { ...mapProject(project), charter: mapCharter(charter) ?? null, timeline: await listTimeline(id), status_history: await listHistory(id), decks: await listDecks(id) };
+}
+
+// ─── Project decks: references (name + SharePoint/OneDrive link) only; the files stay in Microsoft 365 ───
+const mapDeck = (d) => ({ ...d, created_at: iso(d.created_at), updated_at: iso(d.updated_at) });
+
+async function listDecks(projectId) {
+  return (await (await db()).query('SELECT * FROM project_decks WHERE project_id = $1 ORDER BY created_at, name', [projectId])).map(mapDeck);
+}
+
+async function getDeck(deckId) {
+  const [d] = await (await db()).query('SELECT * FROM project_decks WHERE id = $1', [deckId]);
+  return d ? mapDeck(d) : null;
+}
+
+async function createDeck(projectId, deck, user = '') {
+  const id = uid();
+  await (await db()).query(
+    'INSERT INTO project_decks (id, project_id, name, url, description, created_by, updated_by) VALUES ($1, $2, $3, $4, $5, $6, $6)',
+    [id, projectId, deck.name, deck.url, deck.description, user],
+  );
+  return getDeck(id);
+}
+
+async function updateDeck(deckId, deck, user = '') {
+  const rows = await (await db()).query(
+    'UPDATE project_decks SET name = $2, url = $3, description = $4, updated_by = $5, updated_at = now() WHERE id = $1 RETURNING id',
+    [deckId, deck.name, deck.url, deck.description, user],
+  );
+  return rows.length ? getDeck(deckId) : null;
+}
+
+/** Removes only the reference row — the PowerPoint file in SharePoint / OneDrive is never touched. */
+async function deleteDeck(deckId) {
+  return (await (await db()).query('DELETE FROM project_decks WHERE id = $1 RETURNING id', [deckId])).length > 0;
 }
 
 async function createProject(p, user = '') {
@@ -201,5 +235,6 @@ module.exports = {
   getCharter, saveCharter,
   listHistory,
   listTimeline, replaceTimeline, getActivity, updateActivity,
+  listDecks, getDeck, createDeck, updateDeck, deleteDeck,
   getLoginState, recordLoginFailure, clearLoginFailures,
 };

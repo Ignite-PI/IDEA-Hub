@@ -15,6 +15,7 @@ import { Person } from '../components/Person';
 import { useProjects } from '../components/ProjectsContext';
 import { TimelineEditor, timelineErrors } from '../components/TimelineEditor';
 import { useToast } from '../components/Toast';
+import { ProjectDecks } from '../components/ProjectDecks';
 import { STATUSES, STATUS_META, type ActivityStatus, type ProjectDetail, type ProjectStatus, type TimelineActivity } from '../types';
 import { charterProgress, emptyActivity, enteredActivities, normalizeCharter, timelineProgress } from '../utils/charter';
 import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx } from '../utils/exportCharter';
@@ -236,6 +237,9 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
           )}
         </aside>
       </div>
+
+      <ProjectDecks projectId={project.id} decks={project.decks ?? []} readOnly={readOnly}
+        onChange={(decks) => setProject((p) => (p ? { ...p, decks } : p))} />
 
       <section className="card" id="timeline" style={{ marginTop: 20 }}>
         <div className="card-head" style={{ flexWrap: 'wrap' }}>

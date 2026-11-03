@@ -39,6 +39,8 @@ export interface Project {
   ops_manager: string;
   status: ProjectStatus;
   link: string;
+  /** Portfolio: 'clinical' | 'sbf'; null = Needs Business Function (never guessed). */
+  business_function: BusinessFunction | null;
   created_at: string;
   updated_at: string;
   charter_status: CharterStatus;
@@ -47,7 +49,16 @@ export interface Project {
   timeline_completed: number;
 }
 
-export type ProjectInput = Pick<Project, 'title' | 'description' | 'owner' | 'functional_area' | 'ops_manager' | 'status' | 'link'>;
+export type BusinessFunction = 'clinical' | 'sbf';
+export const BUSINESS_FUNCTIONS: { code: BusinessFunction; label: string }[] = [
+  { code: 'clinical', label: 'Clinical Functions' },
+  { code: 'sbf', label: 'Specialized Business Functions' },
+];
+export const NEEDS_BF = 'Needs Business Function';
+/** User-facing label for a Business Function code (never the bare "SBF" abbreviation). */
+export const bfLabel = (code: string | null | undefined) => BUSINESS_FUNCTIONS.find((b) => b.code === code)?.label ?? NEEDS_BF;
+
+export type ProjectInput = Pick<Project, 'title' | 'description' | 'owner' | 'functional_area' | 'ops_manager' | 'status' | 'link'> & { business_function?: BusinessFunction | null };
 
 export interface Milestone {
   id: string;

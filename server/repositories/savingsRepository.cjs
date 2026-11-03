@@ -67,7 +67,7 @@ async function updateSettings(patch) {
 async function linkedProjects(ids = null) {
   const d = await db();
   const rows = await d.query(`
-    SELECT p.id, p.title, p.owner, p.functional_area, p.ops_manager, p.status,
+    SELECT p.id, p.title, p.owner, p.functional_area, p.ops_manager, p.status, p.business_function,
       COALESCE(c.status, 'Not Started') AS charter_status, c.data -> 'raci' AS raci,
       (SELECT COUNT(*)::int FROM timeline_activities t WHERE t.project_id = p.id) AS timeline_total,
       (SELECT COUNT(*)::int FROM timeline_activities t WHERE t.project_id = p.id AND t.start_date IS NOT NULL AND t.end_date IS NOT NULL) AS timeline_dated

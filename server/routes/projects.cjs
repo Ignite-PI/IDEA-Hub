@@ -18,9 +18,17 @@ const userOf = (req) => {
   return name ? (account ? `${name} (${account})` : name) : account;
 };
 
+// Portfolio codes → labels: 'clinical' = Clinical Functions, 'sbf' = Specialized Business Functions; empty = Needs Business Function
+const BUSINESS_FUNCTIONS = ['clinical', 'sbf'];
+
 function cleanProject(body, existing = {}) {
   const p = { ...existing };
   for (const f of PROJECT_FIELDS) if (body[f] !== undefined) p[f] = String(body[f] ?? '').trim();
+  if (body.business_function !== undefined) {
+    const bf = String(body.business_function ?? '').trim();
+    if (bf && !BUSINESS_FUNCTIONS.includes(bf)) return { error: 'Business Function must be Clinical Functions or Specialized Business Functions.' };
+    p.business_function = bf || null;
+  }
   if (!p.title) return { error: 'Project Title is required.' };
   if (!p.status) p.status = 'Idea';
   if (!STATUSES.includes(p.status)) return { error: `Status must be one of: ${STATUSES.join(', ')}` };

@@ -28,11 +28,7 @@ function createApp() {
   // Senior Manager savings module — MANAGERS account only
   app.use('/api/savings', auth.requireRole('managers'), require('./routes/savings.cjs'));
   app.use('/api/ai', require('./routes/ai.cjs'));
-  // MANAGERS may read project data (linked project details / charter / Gantt) but never change it
-  app.use('/api', (req, res, next) =>
-    req.session.role === 'managers' && req.method !== 'GET'
-      ? res.status(403).json({ error: 'The MANAGERS account has read-only access to projects.', code: 'read_only' })
-      : next());
+  // IGNITE and MANAGERS both read and edit the SAME project records (projects, charters, timeline, decks).
   // Non-destructive import of data exported from the legacy local SQLite database (IGNITE only)
   app.post('/api/admin/import', auth.requireRole('ignite'), async (req, res, next) => {
     try {

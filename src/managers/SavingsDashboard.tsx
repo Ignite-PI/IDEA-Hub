@@ -13,7 +13,11 @@ const OUTCOME_COLORS: Record<string, string> = { 'Billable Headcount Reduction':
 export function SavingsDashboard() {
   const { summary, summaryAll, filtered, all, settings, setFilters, activeFilterCount } = useSavings();
   const navigate = useNavigate();
-  const drill = (f: Partial<SavingsFilters>) => { setFilters(f); navigate('/managers/input'); };
+  // Drill-down: one clicked value becomes a single selection in that (multi-select) category
+  const drill = (f: Partial<Record<keyof SavingsFilters, string>>) => {
+    setFilters(Object.fromEntries(Object.entries(f).map(([k, v]) => [k, k === 'q' || k === 'completeness' ? v : v ? [v] : []])) as Partial<SavingsFilters>);
+    navigate('/managers/input');
+  };
   const s = summary;
   const attainment = s.target_achievement;
   const surplus = s.remaining_gap >= 0;

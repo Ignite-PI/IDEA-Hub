@@ -229,7 +229,7 @@ export function InitiativeEditor() {
                   <span className="small muted">Owner: {project.owner || '—'} · Project Status: {project.status} · Charter Status: {project.charter_status} · Timeline activities: {project.timeline_total}</span>
                 </div>
                 <div className="row">
-                  <Link className="btn btn-secondary btn-sm" to={`/managers/projects/${project.id}`}><ExternalLink size={14} /> View project</Link>
+                  <Link className="btn btn-secondary btn-sm" to={`/managers/projects/${project.id}`}><ExternalLink size={14} /> Open project</Link>
                   <button className="btn btn-ghost btn-sm" onClick={() => set('project_id', '')}><Unlink size={14} /> Unlink</button>
                 </div>
               </div>

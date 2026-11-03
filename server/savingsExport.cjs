@@ -75,10 +75,11 @@ async function buildSavingsWorkbook({ lists, settings, initiatives, projects }) 
   const extra = [
     { header: 'Current Hourly Rate', key: 'current_hourly_rate', type: 'currency2' },
     { header: 'Future Hourly Rate', key: 'future_hourly_rate', type: 'currency2' },
-    { header: 'Linked SBF Project', key: 'project' },
+    { header: 'Linked Project', key: 'project' },
     { header: 'Project Owner (from project)', key: 'owner' },
     { header: 'Record Status', key: 'record_status' },
     { header: 'Missing / Needs Attention', key: 'issues' },
+    { header: 'Business Function (from project)', key: 'business_function' },
   ];
   const headers = [...COLUMNS.map((c) => c.header), ...extra.map((e) => e.header)];
   headerRow(wm, 1, headers);
@@ -140,6 +141,8 @@ async function buildSavingsWorkbook({ lists, settings, initiatives, projects }) 
     row.getCell(hourlyFut).value = n(r.future_hourly_rate); row.getCell(hourlyFut).numFmt = FMT.currency2;
     row.getCell(hourlyFut + 1).value = project ? project.title : 'Not linked';
     row.getCell(hourlyFut + 2).value = project ? project.owner : '';
+    row.getCell(hourlyFut + 5).value = !project ? 'Not linked' : project.business_function === 'clinical' ? 'Clinical Functions'
+      : project.business_function === 'sbf' ? 'Specialized Business Functions' : 'Needs Business Function';
     row.getCell(hourlyFut + 3).value = isIncomplete(issues) ? 'Incomplete' : 'Complete';
     row.getCell(hourlyFut + 4).value = issues.filter((i) => i.kind !== 'notice').map((i) => i.label).join('; ');
     row.getCell(hourlyFut + 4).alignment = { wrapText: true, vertical: 'top' };

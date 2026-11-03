@@ -13,6 +13,7 @@ export interface LinkedProjectInfo {
   raci: { responsible?: string; accountable?: string; consulted?: string; informed?: string } | null;
   timeline_total: number;
   timeline_dated: number;
+  business_function?: 'clinical' | 'sbf' | null;
 }
 
 export interface ResolvedInitiative {

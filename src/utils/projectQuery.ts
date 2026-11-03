@@ -33,6 +33,10 @@ export interface Filters {
   area: string[];
   manager: string[];
   owner: string[];
+  /** Business Function codes: 'clinical' | 'sbf' | 'none' (= Needs Business Function). */
+  bf: string[];
+  /** Charter Status: Not Started | In Progress | Completed. */
+  charter: string[];
   /** 'title' = only projects still titled "Needs Project Title" (e.g. imported charters without a title). */
   needs?: string;
 }
@@ -49,6 +53,8 @@ export function filterProjects(projects: Project[], f: Filters): Project[] {
     (!f.area.length || f.area.includes(p.functional_area)) &&
     (!f.manager.length || f.manager.includes(p.ops_manager)) &&
     (!f.owner.length || f.owner.includes(p.owner)) &&
+    (!f.bf.length || f.bf.includes(p.business_function ?? 'none')) &&
+    (!f.charter.length || f.charter.includes(p.charter_status)) &&
     (!q || [p.title, p.description, p.owner, p.functional_area, p.ops_manager, p.status, p.link].some((v) => v?.toLowerCase().includes(q))),
   );
 }

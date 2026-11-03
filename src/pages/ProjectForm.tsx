@@ -8,10 +8,11 @@ import { CHARACTERS } from '../characters';
 import { EmptyState, Loading } from '../components/EmptyState';
 import { useProjects } from '../components/ProjectsContext';
 import { useToast } from '../components/Toast';
-import { STATUSES, STATUS_META, type ProjectDetail, type ProjectInput } from '../types';
+import { BUSINESS_FUNCTIONS, NEEDS_BF, STATUSES, STATUS_META, type ProjectDetail, type ProjectInput } from '../types';
+import { useBase } from '../components/BasePath';
 import { distinct } from '../utils/projectQuery';
 
-const BLANK: ProjectInput = { title: '', description: '', owner: '', functional_area: '', ops_manager: '', status: 'Idea', link: '' };
+const BLANK: ProjectInput = { title: '', description: '', owner: '', functional_area: '', ops_manager: '', status: 'Idea', link: '', business_function: null };
 
 export function ProjectForm() {
   const { id } = useParams();
@@ -19,6 +20,7 @@ export function ProjectForm() {
   const navigate = useNavigate();
   const toast = useToast();
   const { projects, refresh } = useProjects();
+  const base = useBase();
 
   const [form, setForm] = useState<ProjectInput>(BLANK);
   const [loading, setLoading] = useState(editing);
@@ -34,7 +36,7 @@ export function ProjectForm() {
     api.getProject(id)
       .then((p) => {
         setExisting(p);
-        setForm({ title: p.title, description: p.description, owner: p.owner, functional_area: p.functional_area, ops_manager: p.ops_manager, status: p.status, link: p.link });
+        setForm({ title: p.title, description: p.description, owner: p.owner, functional_area: p.functional_area, ops_manager: p.ops_manager, status: p.status, link: p.link, business_function: p.business_function ?? null });
       })
       .catch((e) => setLoadError((e as Error).message))
       .finally(() => setLoading(false));
@@ -67,7 +69,7 @@ export function ProjectForm() {
         await api.updateProject(id!, form);
         await refresh();
         toast('Project saved');
-        navigate(`/projects/${id}`);
+        navigate(`${base}/projects/${id}`);
       } else {
         const p = await api.createProject(form);
         await refresh();
@@ -94,8 +96,8 @@ export function ProjectForm() {
             It now appears on the dashboard as <strong>{created.status}</strong>. When you're ready, start the Project Charter to define scope, RACI and the timeline.
           </p>
           <div className="row wrap">
-            <button className="btn btn-primary" onClick={() => navigate(`/projects/${created.id}`)}>View project</button>
-            <button className="btn btn-accent" onClick={() => navigate(`/projects/${created.id}/charter`)}><FileText size={16} /> Start Project Charter</button>
+            <button className="btn btn-primary" onClick={() => navigate(`${base}/projects/${created.id}`)}>View project</button>
+            <button className="btn btn-accent" onClick={() => navigate(`${base}/projects/${created.id}/charter`)}><FileText size={16} /> Start Project Charter</button>
             <button className="btn btn-secondary" onClick={() => { setForm(BLANK); setCreated(null); setTouched(false); }}><Plus size={16} /> Add another</button>
           </div>
         </div>
@@ -106,9 +108,9 @@ export function ProjectForm() {
   return (
     <>
       <div className="crumbs">
-        <Link to="/projects">All Projects</Link>
+        <Link to={base ? `${base}/portfolio/all` : '/projects'}>{base ? 'Clinical Tower Projects' : 'All Projects'}</Link>
         <ChevronRight size={14} />
-        {editing ? <><Link to={`/projects/${id}`}>{form.title || 'Project'}</Link><ChevronRight size={14} /><span>Edit</span></> : <span>New</span>}
+        {editing ? <><Link to={`${base}/projects/${id}`}>{form.title || 'Project'}</Link><ChevronRight size={14} /><span>Edit</span></> : <span>New</span>}
       </div>
       <div className="page-head">
         <div>
@@ -132,6 +134,14 @@ export function ProjectForm() {
                   <AiAssistButton field="Project Description" value={form.description} onChange={(v) => update('description', v)} getContext={getContext} />
                 </div>
                 <textarea id="desc" className="textarea" rows={5} value={form.description} onChange={(e) => update('description', e.target.value)} placeholder="What is the idea, what problem does it solve, and who benefits?" />
+              </div>
+              <div className={`field${!form.business_function ? ' needs-bf' : ''}`}>
+                <label htmlFor="bf">Business Function</label>
+                <select id="bf" className="select" value={form.business_function ?? ''} onChange={(e) => update('business_function', (e.target.value || null) as ProjectInput['business_function'])}>
+                  <option value="">{NEEDS_BF}</option>
+                  {BUSINESS_FUNCTIONS.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
+                </select>
+                <span className="hint">Which Clinical Tower portfolio this project belongs to.</span>
               </div>
               <div className="field">
                 <label htmlFor="owner">Project Owner</label>
@@ -168,7 +178,7 @@ export function ProjectForm() {
             </div>
           </div>
           <div className="card-head" style={{ borderTop: '1px solid var(--border)', borderBottom: 0, justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-ghost" onClick={() => (editing ? navigate(`/projects/${id}`) : navigate(-1))}>Cancel</button>
+            <button type="button" className="btn btn-ghost" onClick={() => (editing ? navigate(`${base}/projects/${id}`) : navigate(-1))}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}><Save size={16} /> {saving ? 'Saving…' : editing ? 'Save changes' : 'Create project'}</button>
           </div>
         </div>

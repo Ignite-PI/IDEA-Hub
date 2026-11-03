@@ -7,7 +7,7 @@
  * milestones / tasks and the full CURES activity list.
  * Libraries are lazy-loaded to keep the main bundle small.
  */
-import { ACTIVITY_META, TIMELINE_PHASES, type CharterData, type TimelineActivity } from '../types';
+import { ACTIVITY_META, TIMELINE_PHASES, bfLabel, type CharterData, type TimelineActivity } from '../types';
 import { BRAND } from '../characters';
 import { charterProgress, durationDays, enteredActivities, phaseRange, timelineProgress } from './charter';
 import { formatDate, safeFileName } from './format';
@@ -52,6 +52,16 @@ const scopeParts = (d: CharterData) =>
   ([['In scope', d.inScope], ['Out of scope', d.outOfScope], ['Constraints', d.constraints]] as const).filter(([, v]) => val(v));
 
 const phaseDates = (acts: TimelineActivity[]) => TIMELINE_PHASES.map((p) => ({ phase: p, ...phaseRange(acts, p) }));
+/**
+ * Exports show the portfolio Business Function label (Clinical Functions / Specialized Business Functions, or
+ * "Needs Business Function"), followed by the charter's earlier free-text business area when one was entered.
+ */
+export function withBusinessFunction(d: CharterData, code: string | null | undefined): CharterData {
+  const label = bfLabel(code);
+  const area = val(d.businessFunction);
+  return { ...d, businessFunction: area && area !== label ? `${label} (${area})` : label };
+}
+
 /** Several people ("A; B; C") shown one per line in exports — every person is kept. */
 const peopleLines = (v: string) => String(v ?? '').split(/\s*;\s*|\s*\n+\s*/).filter(Boolean).join('\n');
 

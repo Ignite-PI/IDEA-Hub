@@ -114,7 +114,7 @@ export function charterMissing(c: CharterData, activities: TimelineActivity[] = 
   const out: MissingItem[] = [];
   const need = (key: string, section: string, label: string, ok: boolean) => { if (!ok) out.push({ key, section, label }); };
   const info: [keyof CharterData, string][] = [
-    ['projectTitle', 'Project Title'], ['businessFunction', 'Business Function'], ['businessOwner', 'Business Owner'],
+    ['projectTitle', 'Project Title'], ['businessFunction', 'Business Area'], ['businessOwner', 'Business Owner'],
     ['executiveSponsor', 'Executive Sponsor'], ['lineOfBusiness', 'Line of Business'], ['executionLead', 'Execution Lead'], ['curesLead', 'CURES Lead'],
   ];
   for (const [k, l] of info) need(k, 'information', l, filled(c[k] as string));

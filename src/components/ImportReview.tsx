@@ -15,6 +15,7 @@ export function ImportReview({ project }: { project: ProjectDetail }) {
   const data = project.charter ? normalizeCharter(project.charter.data, project) : null;
   const live: string[] = [];
   if (untitled) live.push('Project Title');
+  if (!project.business_function) live.push('Business Function (Clinical Functions or Specialized Business Functions)');
   if (!project.owner?.trim()) live.push('Project Owner');
   if (!project.functional_area?.trim()) live.push('Functional Area');
   if (data) for (const m of charterMissing(data, project.timeline)) live.push(m.label);

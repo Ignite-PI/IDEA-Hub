@@ -19,7 +19,7 @@ async function db() {
 }
 
 const PROJECT_SELECT = `
-  SELECT p.id, p.title, p.description, p.owner, p.functional_area, p.ops_manager, p.status, p.link, p.created_at, p.updated_at,
+  SELECT p.id, p.title, p.description, p.owner, p.functional_area, p.ops_manager, p.status, p.link, p.business_function, p.created_at, p.updated_at,
     COALESCE(c.status, 'Not Started') AS charter_status, c.updated_at AS charter_updated_at, c.completeness AS charter_completeness,
     (SELECT COUNT(*)::int FROM timeline_activities t WHERE t.project_id = p.id) AS timeline_total,
     (SELECT COUNT(*)::int FROM timeline_activities t WHERE t.project_id = p.id AND t.status = 'Completed') AS timeline_completed
@@ -94,9 +94,9 @@ async function createProject(p, user = '') {
   const id = uid();
   await (await db()).tx(async (q) => {
     const [{ ts }] = await q('SELECT now() AS ts');
-    await q(`INSERT INTO projects (id, title, description, owner, functional_area, ops_manager, status, link, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9)`,
-      [id, p.title, p.description ?? '', p.owner ?? '', p.functional_area ?? '', p.ops_manager ?? '', p.status, p.link ?? '', ts]);
+    await q(`INSERT INTO projects (id, title, description, owner, functional_area, ops_manager, status, link, business_function, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $10, $9, $9)`,
+      [id, p.title, p.description ?? '', p.owner ?? '', p.functional_area ?? '', p.ops_manager ?? '', p.status, p.link ?? '', ts, p.business_function || null]);
     await q('INSERT INTO status_history (id, project_id, from_status, to_status, changed_at, changed_by, note) VALUES ($1, $2, NULL, $3, $4, $5, $6)',
       [uid(), id, p.status, ts, user, 'Project created']);
   });
@@ -107,8 +107,8 @@ async function createProject(p, user = '') {
 async function updateProject(id, p, previousStatus, user = '') {
   await (await db()).tx(async (q) => {
     const [{ ts }] = await q('SELECT now() AS ts');
-    await q(`UPDATE projects SET title = $1, description = $2, owner = $3, functional_area = $4, ops_manager = $5, status = $6, link = $7, updated_at = $8
-             WHERE id = $9`, [p.title, p.description, p.owner, p.functional_area, p.ops_manager, p.status, p.link, ts, id]);
+    await q(`UPDATE projects SET title = $1, description = $2, owner = $3, functional_area = $4, ops_manager = $5, status = $6, link = $7, updated_at = $8,
+             business_function = $10 WHERE id = $9`, [p.title, p.description, p.owner, p.functional_area, p.ops_manager, p.status, p.link, ts, id, p.business_function || null]);
     if (p.status !== previousStatus) {
       await q('INSERT INTO status_history (id, project_id, from_status, to_status, changed_at, changed_by, note) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [uid(), id, previousStatus, p.status, ts, user, '']);

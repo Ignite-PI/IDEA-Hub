@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { BookOpen, ClipboardList, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Presentation, Table2 } from 'lucide-react';
+import { BookOpen, Briefcase, ClipboardList, FolderKanban, LayoutDashboard, LogOut, Menu as MenuIcon, Presentation, Stethoscope, Table2 } from 'lucide-react';
+import { useProjects } from '../components/ProjectsContext';
 import { BRAND } from '../characters';
 import { useAuth } from '../components/Auth';
 import { Loading } from '../components/EmptyState';
@@ -11,6 +12,7 @@ import { ExportButton } from './ui';
 export function ManagerLayout() {
   const { signOut } = useAuth();
   const { loading, error, all } = useSavings();
+  const { projects } = useProjects();
   const [open, setOpen] = useState(false);
   const location = useLocation();
   useEffect(() => { setOpen(false); window.scrollTo(0, 0); }, [location.pathname]);
@@ -23,17 +25,19 @@ export function ManagerLayout() {
           <div className="brand-mark"><img src={BRAND.fire} alt="IGNITE" /></div>
           <div>
             <div className="brand-title">{BRAND.name}</div>
-            <div className="brand-sub">Senior Managers · 30% Savings</div>
+            <div className="brand-sub">Senior Managers · Projects &amp; 30% Savings</div>
           </div>
         </div>
-        <div className="nav-label">Savings</div>
+        <div className="nav-label">Clinical Tower Projects</div>
+        <NavLink to="/managers/portfolio/all" className="nav-link"><FolderKanban size={18} /> All <span className="count">{projects.length}</span></NavLink>
+        <NavLink to="/managers/portfolio/clinical" className="nav-link"><Stethoscope size={18} /> Clinical Functions <span className="count">{projects.filter((p) => p.business_function === 'clinical').length}</span></NavLink>
+        <NavLink to="/managers/portfolio/sbf" className="nav-link"><Briefcase size={18} /> Specialized Business Functions <span className="count">{projects.filter((p) => p.business_function === 'sbf').length}</span></NavLink>
+        <div className="nav-label">Savings Management</div>
         <NavLink to="/managers" end className="nav-link"><LayoutDashboard size={18} /> Savings Summary</NavLink>
         <NavLink to="/managers/input" className="nav-link"><ClipboardList size={18} /> Manager Input {incomplete > 0 && <span className="count warn" title="Records needing information">{incomplete}</span>}</NavLink>
         <NavLink to="/managers/grid" className="nav-link"><Table2 size={18} /> Grid View</NavLink>
         <NavLink to="/managers/storyboard" className="nav-link"><Presentation size={18} /> Storyboard</NavLink>
         <NavLink to="/managers/instructions" className="nav-link"><BookOpen size={18} /> Instructions</NavLink>
-        <div className="nav-label">Reference</div>
-        <NavLink to="/managers/projects" className="nav-link"><FolderKanban size={18} /> SBF Projects (read-only)</NavLink>
         <div style={{ marginTop: 'auto' }} />
         <button className="nav-link signout-link" onClick={() => void signOut()}><LogOut size={18} /> Sign out</button>
       </aside>
@@ -41,7 +45,7 @@ export function ManagerLayout() {
       <div className="main">
         <header className="topbar scrolled">
           <button className="btn btn-secondary btn-icon menu-btn" onClick={() => setOpen(true)} aria-label="Open navigation"><MenuIcon size={18} /></button>
-          <div className="mgr-banner"><b>MANAGERS</b> · Senior Manager savings workspace</div>
+          <div className="mgr-banner"><b>MANAGERS</b> · Clinical Tower Projects &amp; Savings Management</div>
           <div className="topbar-spacer" />
           <ExportButton />
         </header>

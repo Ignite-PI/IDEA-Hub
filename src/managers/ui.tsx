@@ -2,7 +2,8 @@
 import { AlertTriangle, Calculator, Database, FileText, Link2, PenLine, ShieldAlert, X } from 'lucide-react';
 import { api } from '../api';
 import type { ValueSource } from '../../shared/savingsResolve';
-import { EMPTY_FILTERS, useSavings, type SavingsFilters } from './SavingsContext';
+import { EMPTY_FILTERS, MULTI_FILTER_KEYS, useSavings, type MultiFilterKey, type SavingsFilters } from './SavingsContext';
+import { MultiSelect } from '../components/MultiSelect';
 
 export type FieldKind = 'enter' | 'calc' | ValueSource;
 
@@ -47,15 +48,19 @@ const distinct = (vals: (string | null | undefined)[]) => [...new Set(vals.filte
 export function SavingsFilterBar({ compact = false }: { compact?: boolean }) {
   const { all, data, filters, setFilters, resetFilters, activeFilterCount, filtered } = useSavings();
   const lists = data?.lists ?? {};
-  const opt = (key: keyof SavingsFilters, label: string, values: string[]) => (
-    <label className="sf-field" key={key}>
+  // Searchable multi-select per category; options come from the workbook Lists tab and the real records
+  const opt = (key: MultiFilterKey, label: string, values: string[]) => (
+    <div className="sf-field" key={key}>
       <span>{label}</span>
-      <select className="select" value={filters[key] as string} onChange={(e) => setFilters({ [key]: e.target.value } as Partial<SavingsFilters>)}>
-        <option value="">All</option>
-        {values.map((v) => <option key={v} value={v}>{v}</option>)}
-      </select>
-    </label>
+      <MultiSelect label={label} allLabel="All" options={values} value={filters[key]} onChange={(v) => setFilters({ [key]: v } as Partial<SavingsFilters>)} />
+    </div>
   );
+  const pills = MULTI_FILTER_KEYS.flatMap((k) => filters[k].map((v) => ({ k, v })));
+  const LABELS: Record<MultiFilterKey, string> = {
+    ops_manager: 'Operations Manager', area: 'Area', functional_area: 'Functional Area', process: 'Process', savings_track: 'Savings Track',
+    savings_lever: 'Savings Lever', savings_outcome: 'Savings Outcome', status: 'Status', owner_signoff: 'Owner Sign-off',
+    finance_validated: 'Finance Validated', project_charter: 'Project Charter (Y/N)',
+  };
   const fromData = (fn: (e: (typeof all)[number]) => string | null | undefined) => distinct(all.map(fn));
   return (
     <div className={`savings-filters${compact ? ' compact' : ''}`}>
@@ -84,6 +89,15 @@ export function SavingsFilterBar({ compact = false }: { compact?: boolean }) {
         {opt('finance_validated', 'Finance Validated', [...(lists.yes_no ?? ['Yes', 'No']), '(blank)'])}
         {opt('project_charter', 'Project Charter (Y/N)', ['Y', 'N', 'Missing Information'])}
       </div>
+      {pills.length > 0 && (
+        <div className="active-filters" style={{ padding: '8px 0 0' }}>
+          {pills.map(({ k, v }) => (
+            <button key={`${k}:${v}`} type="button" className="filter-pill" onClick={() => setFilters({ [k]: filters[k].filter((x) => x !== v) } as Partial<SavingsFilters>)}>
+              {LABELS[k]}: {v} <X size={13} />
+            </button>
+          ))}
+        </div>
+      )}
       <div className="sf-foot">
         <span className="small muted">Showing <b>{filtered.length}</b> of {all.length} initiatives</span>
         {activeFilterCount > 0 && <button type="button" className="btn btn-ghost btn-sm" onClick={resetFilters}><X size={14} /> Clear filters ({activeFilterCount})</button>}

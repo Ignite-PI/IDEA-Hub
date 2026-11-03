@@ -17,15 +17,18 @@ import { TimelineEditor, timelineErrors } from '../components/TimelineEditor';
 import { useToast } from '../components/Toast';
 import { ProjectDecks } from '../components/ProjectDecks';
 import { ImportReview } from '../components/ImportReview';
+import { useBase } from '../components/BasePath';
 import { STATUSES, STATUS_META, type ActivityStatus, type ProjectDetail, type ProjectStatus, type TimelineActivity } from '../types';
 import { charterProgress, emptyActivity, enteredActivities, normalizeCharter, timelineProgress } from '../utils/charter';
-import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx } from '../utils/exportCharter';
+import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx, withBusinessFunction } from '../utils/exportCharter';
+import { BusinessFunctionBadge } from '../components/Badges';
 import { formatDate, timeAgo } from '../utils/format';
 import { resolveLink } from '../utils/links';
 
 /** readOnly: used by the MANAGERS account — shows everything, hides every edit action. */
 export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}) {
   const { id } = useParams();
+  const base = useBase();
   const navigate = useNavigate();
   const toast = useToast();
   const { refresh } = useProjects();
@@ -43,7 +46,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
   if (error) {
     return (
       <div className="card" style={{ marginTop: 20 }}>
-        <EmptyState image={CHARACTERS.corix} title="Project not found" action={<Link className="btn btn-primary" to="/projects">Back to all projects</Link>}>
+        <EmptyState image={CHARACTERS.corix} title="Project not found" action={<Link className="btn btn-primary" to={base ? `${base}/portfolio/all` : '/projects'}>Back to all projects</Link>}>
           {error}
         </EmptyState>
       </div>
@@ -109,9 +112,10 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
     if (!charter) return;
     setBusy(kind);
     try {
-      if (kind === 'docx') await downloadCharterDocx(charter, project.timeline);
-      else if (kind === 'pdf') await downloadCharterPdf(charter, project.timeline);
-      else await downloadCharterPptx(charter, project.timeline, { status: project.status, charterStatus: project.charter?.status ?? 'In Progress', owner: project.owner });
+      const exp = withBusinessFunction(charter, project.business_function);
+      if (kind === 'docx') await downloadCharterDocx(exp, project.timeline);
+      else if (kind === 'pdf') await downloadCharterPdf(exp, project.timeline);
+      else await downloadCharterPptx(exp, project.timeline, { status: project.status, charterStatus: project.charter?.status ?? 'In Progress', owner: project.owner });
       toast(`Charter downloaded as ${kind === 'docx' ? 'Word' : kind === 'pdf' ? 'PDF' : 'PowerPoint'}`);
     } catch (e) {
       toast(`Download failed: ${(e as Error).message}`, 'error');
@@ -125,7 +129,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
     await api.deleteProject(project.id);
     await refresh();
     toast('Project deleted');
-    navigate('/projects');
+    navigate(base ? `${base}/portfolio/all` : '/projects');
   };
 
   const statusMenu = (
@@ -154,7 +158,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
   return (
     <>
       <div className="crumbs">
-        <Link to={readOnly ? '/managers/projects' : '/projects'}>{readOnly ? 'SBF Projects' : 'All Projects'}</Link>
+        <Link to={base ? `${base}/portfolio/all` : '/projects'}>{base ? 'Clinical Tower Projects' : 'All Projects'}</Link>
         <ChevronRight size={14} />
         <span>{project.title}</span>
       </div>
@@ -171,13 +175,13 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
             <h1>{project.title}</h1>
             <p className="muted small">Created {formatDate(project.created_at)} · Updated {timeAgo(project.updated_at)}</p>
             <div className="detail-actions">
-              {!readOnly && <button className="btn btn-primary" onClick={() => navigate(`/projects/${project.id}/edit`)}><Pencil size={15} /> Edit Project</button>}
+              {!readOnly && <button className="btn btn-primary" onClick={() => navigate(`${base}/projects/${project.id}/edit`)}><Pencil size={15} /> Edit Project</button>}
               {!readOnly && statusMenu}
               <button className="btn btn-secondary" disabled={!hasLink} onClick={() => open(project.link)} title={hasLink ? project.link : 'No project link added'}>
                 {canOpen || !hasLink ? <ExternalLink size={15} /> : <Copy size={15} />} {canOpen || !hasLink ? 'Open Project Link' : 'Copy Project Link'}
               </button>
               {!readOnly && (
-                <button className="btn btn-accent" onClick={() => navigate(`/projects/${project.id}/charter`)}>
+                <button className="btn btn-accent" onClick={() => navigate(`${base}/projects/${project.id}/charter`)}>
                   <FileText size={15} /> {charter ? 'Edit Project Charter' : 'Create Project Charter'}
                 </button>
               )}
@@ -187,6 +191,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
             <div className="meta"><div className="k">Project Owner</div><div className="v"><Person name={project.owner} /></div></div>
             <div className="meta"><div className="k">Functional Area</div><div className="v">{project.functional_area || <span className="empty-dash">—</span>}</div></div>
             <div className="meta"><div className="k">Operations Manager</div><div className="v"><Person name={project.ops_manager} alt /></div></div>
+            <div className="meta"><div className="k">Business Function</div><div className="v"><BusinessFunctionBadge code={project.business_function} /></div></div>
             <div className="meta"><div className="k">Project Status</div><div className="v"><StatusBadge status={project.status} /></div></div>
             <div className="meta"><div className="k">Date Created</div><div className="v">{formatDate(project.created_at, true)}</div></div>
             <div className="meta"><div className="k">Last Updated</div><div className="v">{formatDate(project.updated_at, true)}</div></div>
@@ -217,7 +222,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
                 </div>
               ))}
               <div className="stack" style={{ gap: 8, marginTop: 16 }}>
-                {!readOnly && <button className="btn btn-primary" onClick={() => navigate(`/projects/${project.id}/charter`)}><Pencil size={15} /> Edit Project Charter</button>}
+                {!readOnly && <button className="btn btn-primary" onClick={() => navigate(`${base}/projects/${project.id}/charter`)}><Pencil size={15} /> Edit Project Charter</button>}
                 <div className="row">
                   <button className="btn btn-secondary" style={{ flex: 1 }} disabled={!!busy} onClick={() => download('docx')}><FileDown size={15} /> {busy === 'docx' ? 'Preparing…' : 'Word'}</button>
                   <button className="btn btn-secondary" style={{ flex: 1 }} disabled={!!busy} onClick={() => download('pdf')}><FileDown size={15} /> {busy === 'pdf' ? 'Preparing…' : 'PDF'}</button>
@@ -229,7 +234,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
             <div className="card-body" style={{ textAlign: 'center' }}>
               <img src={CHARACTERS.alex} alt="" style={{ height: 150, margin: '4px auto 12px', display: 'block' }} />
               <p className="muted small" style={{ marginBottom: 14 }}>Define the problem, goals, key metrics, scope and CURES timeline in the SBF Project Charter.</p>
-              {!readOnly && <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => navigate(`/projects/${project.id}/charter`)}><FileText size={15} /> Create Project Charter</button>}
+              {!readOnly && <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => navigate(`${base}/projects/${project.id}/charter`)}><FileText size={15} /> Create Project Charter</button>}
               <div className="row" style={{ marginTop: 8 }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} disabled title="Create the charter first"><FileDown size={15} /> Word</button>
                 <button className="btn btn-secondary" style={{ flex: 1 }} disabled title="Create the charter first"><FileDown size={15} /> PDF</button>
@@ -312,7 +317,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
           <section className="card">
             <div className="card-head"><h3>Description</h3></div>
             <div className="card-body">
-              {project.description ? <p className="prose">{project.description}</p> : <p className="muted">No description yet.{!readOnly && <> <Link to={`/projects/${project.id}/edit`}>Add one</Link>.</>}</p>}
+              {project.description ? <p className="prose">{project.description}</p> : <p className="muted">No description yet.{!readOnly && <> <Link to={`${base}/projects/${project.id}/edit`}>Add one</Link>.</>}</p>}
             </div>
           </section>
           <section className="card">
@@ -324,7 +329,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
                   {canOpen && <button className="btn btn-ghost btn-icon" title="Open" onClick={() => open(project.link)}><ExternalLink size={16} /></button>}
                   <button className="btn btn-ghost btn-icon" title="Copy" onClick={() => copy(project.link)}><Copy size={15} /></button>
                 </div>
-              ) : <p className="muted">No link added.{!readOnly && <> <Link to={`/projects/${project.id}/edit`}>Add a link</Link>.</>}</p>}
+              ) : <p className="muted">No link added.{!readOnly && <> <Link to={`${base}/projects/${project.id}/edit`}>Add a link</Link>.</>}</p>}
             </div>
           </section>
           {!readOnly && (

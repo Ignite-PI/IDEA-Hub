@@ -13,13 +13,14 @@ import { Menu } from '../components/Menu';
 import { useProjects } from '../components/ProjectsContext';
 import { PeoplePicker, peopleOptions } from '../components/PeoplePicker';
 import { RichTextEditor } from '../components/RichText';
+import { useBase } from '../components/BasePath';
 import { TimelineEditor, timelineErrors } from '../components/TimelineEditor';
 import { useToast } from '../components/Toast';
 import { AiAssistButton, AiRowsButton } from '../components/ai/AiAssist';
 import { AiPanel, type InsertTarget } from '../components/ai/AiPanel';
-import type { Charter, CharterData, KeyMetric, Milestone, ProjectDetail, TimelineActivity } from '../types';
+import { BUSINESS_FUNCTIONS, NEEDS_BF, type BusinessFunction, type Charter, type CharterData, type KeyMetric, type Milestone, type ProjectDetail, type TimelineActivity } from '../types';
 import { charterMissing, charterProgress, emptyActivity, emptyMetric, emptyMilestone, enteredActivities, newId, normalizeCharter } from '../utils/charter';
-import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx } from '../utils/exportCharter';
+import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx, withBusinessFunction } from '../utils/exportCharter';
 import { timeAgo } from '../utils/format';
 
 // Accountable stays a single owner (RACI rule); the other roles may hold several people
@@ -44,7 +45,8 @@ const SECTIONS = [
 ] as const;
 
 const INFO_FIELDS = [
-  ['projectTitle', 'Project Title'], ['businessFunction', 'Business Function'], ['businessOwner', 'Business Owner'],
+  // The charter's earlier free-text "Business Function" value is kept as Business Area; the portfolio Business Function is a fixed choice
+  ['projectTitle', 'Project Title'], ['businessFunction', 'Business Area'], ['businessOwner', 'Business Owner'],
   ['executiveSponsor', 'Executive Sponsor'], ['lineOfBusiness', 'Line of Business'], ['executionLead', 'Execution Lead'], ['curesLead', 'CURES Lead'],
 ] as const;
 
@@ -55,10 +57,12 @@ export function CharterBuilder() {
   const navigate = useNavigate();
   const toast = useToast();
   const { refresh, projects } = useProjects();
+  const base = useBase();
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<CharterData | null>(null);
+  const [bf, setBf] = useState<BusinessFunction | null>(null);
   const [timeline, setTimeline] = useState<TimelineActivity[]>([]);
   const [savedJson, setSavedJson] = useState('');
   const [savedTimelineJson, setSavedTimelineJson] = useState('[]');
@@ -69,6 +73,7 @@ export function CharterBuilder() {
   useEffect(() => {
     api.getProject(id!)
       .then((p) => {
+        setBf(p.business_function ?? null);
         const d = normalizeCharter(p.charter?.data, p);
         setProject(p);
         setData(d);
@@ -80,7 +85,7 @@ export function CharterBuilder() {
   }, [id]);
 
   const timelineDirty = JSON.stringify(timeline) !== savedTimelineJson;
-  const dirty = (!!data && JSON.stringify(data) !== savedJson) || timelineDirty;
+  const dirty = (!!data && JSON.stringify(data) !== savedJson) || timelineDirty || (!!project && (bf ?? null) !== (project.business_function ?? null));
   const isNew = !project?.charter;
   const status: Charter['status'] = project?.charter?.status ?? 'In Progress';
 
@@ -156,6 +161,8 @@ export function CharterBuilder() {
         setTimeline(savedTimeline);
         setSavedTimelineJson(JSON.stringify(savedTimeline));
       }
+      // Business Function (portfolio) lives on the project record — the same record IGNITE and MANAGERS both use
+      if ((bf ?? null) !== (project.business_function ?? null)) await api.updateProject(project.id, { business_function: bf });
       const p = await api.saveCharter(project.id, data, nextStatus, charterProgress(data, savedTimeline).percent);
       setProject(p);
       setSavedJson(JSON.stringify(data));
@@ -181,9 +188,10 @@ export function CharterBuilder() {
       p = ok;
     }
     try {
-      if (kind === 'docx') await downloadCharterDocx(data, acts);
-      else if (kind === 'pdf') await downloadCharterPdf(data, acts);
-      else await downloadCharterPptx(data, acts, p ? { status: p.status, charterStatus: p.charter?.status ?? status, owner: p.owner } : undefined);
+      const exp = withBusinessFunction(data, bf);
+      if (kind === 'docx') await downloadCharterDocx(exp, acts);
+      else if (kind === 'pdf') await downloadCharterPdf(exp, acts);
+      else await downloadCharterPptx(exp, acts, p ? { status: p.status, charterStatus: p.charter?.status ?? status, owner: p.owner } : undefined);
       toast(`Saved and downloaded as ${kind === 'docx' ? 'Word' : kind === 'pdf' ? 'PDF' : 'PowerPoint'}`);
     } catch (e) {
       toast(`Download failed: ${(e as Error).message}`, 'error');
@@ -246,9 +254,9 @@ export function CharterBuilder() {
   return (
     <>
       <div className="crumbs">
-        <Link to="/charters">Project Charters</Link>
+        <Link to={base ? `${base}/portfolio/all` : '/charters'}>{base ? 'Clinical Tower Projects' : 'Project Charters'}</Link>
         <ChevronRight size={14} />
-        <Link to={`/projects/${project.id}`}>{project.title}</Link>
+        <Link to={`${base}/projects/${project.id}`}>{project.title}</Link>
         <ChevronRight size={14} />
         <span>Charter</span>
       </div>
@@ -300,6 +308,14 @@ export function CharterBuilder() {
 
         <div className="stack">
           <Section id="information" refFn={sectionRef('information')} icon={<Info size={18} />} title="Project Information" subtitle="Who owns, sponsors and leads this project">
+            <div className={`field bf-field${!bf ? ' needs-bf' : ''}`} style={{ marginBottom: 14, maxWidth: 420 }}>
+              <label className="label" htmlFor="charter-bf">Business Function</label>
+              <select id="charter-bf" className="select" value={bf ?? ''} onChange={(e) => setBf((e.target.value || null) as BusinessFunction | null)}>
+                <option value="">{NEEDS_BF}</option>
+                {BUSINESS_FUNCTIONS.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
+              </select>
+              <span className="hint">Which Clinical Tower portfolio this project belongs to (saved with the charter).</span>
+            </div>
             <p className="small muted" style={{ marginBottom: 12 }}>
               Project Owner: <b>{ownerName || 'not set'}</b>. Execution Lead and CURES Lead follow the Project Owner automatically until you change them.
               Business Owner is the owner for the line of business / business area and is entered separately.
@@ -475,7 +491,7 @@ export function CharterBuilder() {
               <i /> {saving ? 'Saving…' : isNew ? 'Not saved yet' : dirty ? 'Unsaved changes' : `All changes saved · Charter ${status}`}
             </span>
             <span style={{ flex: 1 }} />
-            <button className="btn btn-glass" onClick={() => navigate(`/projects/${project.id}`)}>Back to project</button>
+            <button className="btn btn-glass" onClick={() => navigate(`${base}/projects/${project.id}`)}>Back to project</button>
             {status === 'Completed' && !isNew ? (
               <>
                 <button className="btn btn-glass" disabled={saving} onClick={() => save('In Progress')}><RotateCcw size={15} /> Reopen charter</button>

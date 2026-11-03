@@ -205,6 +205,16 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS idx_project_decks_project ON project_decks(project_id, created_at);
     `,
   },
+  {
+    version: 4,
+    name: 'project business function (portfolio)',
+    sql: `
+      -- Portfolio: 'clinical' = Clinical Functions, 'sbf' = Specialized Business Functions. NULL = Needs Business Function.
+      -- Existing projects stay NULL: the portfolio is never guessed.
+      ALTER TABLE projects ADD COLUMN IF NOT EXISTS business_function text CHECK (business_function IS NULL OR business_function IN ('clinical', 'sbf'));
+      CREATE INDEX IF NOT EXISTS idx_projects_business_function ON projects(business_function);
+    `,
+  },
 ];
 
 async function migrate(driver) {

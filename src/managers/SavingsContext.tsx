@@ -14,24 +14,25 @@ export interface Enriched {
   needsValidation: boolean;
 }
 
-export interface SavingsFilters {
-  q: string;
-  ops_manager: string;
-  area: string;
-  functional_area: string;
-  process: string;
-  savings_track: string;
-  savings_lever: string;
-  savings_outcome: string;
-  status: string;
-  owner_signoff: string;
-  finance_validated: string;
-  project_charter: string;
-  completeness: '' | 'incomplete' | 'complete' | 'needs_validation';
-}
+/** Multi-select category filters: OR within a category (any selected value), AND across categories. */
+export const MULTI_FILTER_KEYS = [
+  'ops_manager', 'area', 'functional_area', 'process', 'savings_track', 'savings_lever', 'savings_outcome', 'status',
+  'owner_signoff', 'finance_validated', 'project_charter',
+] as const;
+export type MultiFilterKey = typeof MULTI_FILTER_KEYS[number];
+export type SavingsFilters = { q: string; completeness: '' | 'incomplete' | 'complete' | 'needs_validation' } & Record<MultiFilterKey, string[]>;
 export const EMPTY_FILTERS: SavingsFilters = {
-  q: '', ops_manager: '', area: '', functional_area: '', process: '', savings_track: '', savings_lever: '', savings_outcome: '',
-  status: '', owner_signoff: '', finance_validated: '', project_charter: '', completeness: '',
+  q: '', completeness: '' as SavingsFilters['completeness'], ...(Object.fromEntries(MULTI_FILTER_KEYS.map((k) => [k, []])) as unknown as Record<MultiFilterKey, string[]>),
+};
+/** Accepts saved filters from before multi-select (single strings) and normalises them to arrays. */
+const normaliseFilters = (raw: Record<string, unknown>): SavingsFilters => {
+  const completeness = ['incomplete', 'complete', 'needs_validation'].includes(String(raw.completeness)) ? (raw.completeness as SavingsFilters['completeness']) : '';
+  const f: SavingsFilters = { ...EMPTY_FILTERS, q: typeof raw.q === 'string' ? raw.q : '', completeness };
+  for (const k of MULTI_FILTER_KEYS) {
+    const v = raw[k];
+    f[k] = Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string' && !!x))] : typeof v === 'string' && v ? [v] : [];
+  }
+  return f;
 };
 
 interface SavingsState {
@@ -66,18 +67,19 @@ export function enrich(row: SavingsInitiative, projects: Map<string, LinkedProje
 
 const matches = (e: Enriched, f: SavingsFilters) => {
   const r = e.row;
-  const eq = (want: string, have: string | null | undefined) => !want || (want === '(blank)' ? !have : have === want);
-  if (!eq(f.ops_manager, e.resolved.ops_manager.value)) return false;
-  if (!eq(f.area, r.area)) return false;
-  if (!eq(f.functional_area, e.resolved.functional_area.value)) return false;
-  if (!eq(f.process, r.process)) return false;
-  if (!eq(f.savings_track, r.savings_track)) return false;
-  if (!eq(f.savings_lever, r.savings_lever)) return false;
-  if (!eq(f.savings_outcome, r.savings_outcome)) return false;
-  if (!eq(f.status, e.resolved.status.value)) return false;
-  if (!eq(f.owner_signoff, r.owner_signoff)) return false;
-  if (!eq(f.finance_validated, r.finance_validated)) return false;
-  if (f.project_charter && e.resolved.project_charter.value !== f.project_charter) return false;
+  // OR within a category: the record matches when its value is ANY of the selected values ('(blank)' = empty)
+  const any = (want: string[], have: string | null | undefined) => !want.length || want.some((w) => (w === '(blank)' ? !have : have === w));
+  if (!any(f.ops_manager, e.resolved.ops_manager.value)) return false;
+  if (!any(f.area, r.area)) return false;
+  if (!any(f.functional_area, e.resolved.functional_area.value)) return false;
+  if (!any(f.process, r.process)) return false;
+  if (!any(f.savings_track, r.savings_track)) return false;
+  if (!any(f.savings_lever, r.savings_lever)) return false;
+  if (!any(f.savings_outcome, r.savings_outcome)) return false;
+  if (!any(f.status, e.resolved.status.value)) return false;
+  if (!any(f.owner_signoff, r.owner_signoff)) return false;
+  if (!any(f.finance_validated, r.finance_validated)) return false;
+  if (f.project_charter.length && !f.project_charter.includes(String(e.resolved.project_charter.value ?? ''))) return false;
   if (f.completeness === 'incomplete' && !e.incomplete) return false;
   if (f.completeness === 'complete' && e.incomplete) return false;
   if (f.completeness === 'needs_validation' && !e.needsValidation) return false;
@@ -96,7 +98,7 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   // Filters survive page refreshes within the browser session (shared by dashboard, list and storyboard)
   const [filters, setFilterState] = useState<SavingsFilters>(() => {
-    try { return { ...EMPTY_FILTERS, ...JSON.parse(sessionStorage.getItem('sbf.savingsFilters') || '{}') }; } catch { return EMPTY_FILTERS; }
+    try { return normaliseFilters(JSON.parse(sessionStorage.getItem('sbf.savingsFilters') || '{}')); } catch { return EMPTY_FILTERS; }
   });
   useEffect(() => { sessionStorage.setItem('sbf.savingsFilters', JSON.stringify(filters)); }, [filters]);
 
@@ -127,7 +129,7 @@ export function SavingsProvider({ children }: { children: ReactNode }) {
     loading, error, data, settings, all, filtered, summary, summaryAll, filters,
     setFilters: (f) => setFilterState((s) => ({ ...s, ...f })),
     resetFilters: () => setFilterState(EMPTY_FILTERS),
-    activeFilterCount: Object.values(filters).filter(Boolean).length,
+    activeFilterCount: MULTI_FILTER_KEYS.reduce((n, k) => n + filters[k].length, 0) + (filters.q ? 1 : 0) + (filters.completeness ? 1 : 0),
     reload,
     upsertLocal: (row) => setData((d) => d && ({ ...d, initiatives: d.initiatives.some((x) => x.id === row.id) ? d.initiatives.map((x) => (x.id === row.id ? row : x)) : [...d.initiatives, row].sort((a, b) => a.initiative_no - b.initiative_no) })),
     removeLocal: (id) => setData((d) => d && ({ ...d, initiatives: d.initiatives.filter((x) => x.id !== id) })),

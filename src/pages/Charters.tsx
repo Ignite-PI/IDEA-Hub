@@ -10,7 +10,7 @@ import { useProjects } from '../components/ProjectsContext';
 import { useToast } from '../components/Toast';
 import { CHARTER_META, CHARTER_STATUSES, type CharterStatus, type Project } from '../types';
 import { normalizeCharter } from '../utils/charter';
-import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx } from '../utils/exportCharter';
+import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx, withBusinessFunction } from '../utils/exportCharter';
 import { timeAgo } from '../utils/format';
 
 export function Charters() {
@@ -39,9 +39,10 @@ export function Charters() {
     try {
       const detail = await api.getProject(p.id);
       const data = normalizeCharter(detail.charter?.data, detail);
-      if (kind === 'docx') await downloadCharterDocx(data, detail.timeline);
-      else if (kind === 'pdf') await downloadCharterPdf(data, detail.timeline);
-      else await downloadCharterPptx(data, detail.timeline, { status: detail.status, charterStatus: detail.charter?.status ?? 'In Progress', owner: detail.owner });
+      const exp = withBusinessFunction(data, detail.business_function);
+      if (kind === 'docx') await downloadCharterDocx(exp, detail.timeline);
+      else if (kind === 'pdf') await downloadCharterPdf(exp, detail.timeline);
+      else await downloadCharterPptx(exp, detail.timeline, { status: detail.status, charterStatus: detail.charter?.status ?? 'In Progress', owner: detail.owner });
       toast(`Downloaded ${p.title} charter`);
     } catch (e) {
       toast(`Download failed: ${(e as Error).message}`, 'error');

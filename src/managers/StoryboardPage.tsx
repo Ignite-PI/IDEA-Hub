@@ -21,7 +21,7 @@ export function StoryboardPage() {
   return (
     <div className="stack">
       <div className="page-head" style={{ marginBottom: 0 }}>
-        <div><div className="eyebrow">Storyboard</div><h1>30% Clinical Savings</h1><p>Leadership narrative built from the live portfolio{activeFilterCount ? ' (filters applied)' : ''}.</p></div>
+        <div><div className="eyebrow">Insights</div><h1>30% Clinical Savings</h1><p>Leadership narrative built from the live portfolio{activeFilterCount ? ' (filters applied)' : ''}.</p></div>
       </div>
       <div className="story-grid">
         {STORYBOARD.map((r, i) => (

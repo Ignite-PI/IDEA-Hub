@@ -60,7 +60,7 @@ export function ProjectDecks({ projectId, decks, onChange, readOnly = false }: {
   };
 
   const remove = async (d: ProjectDeck) => {
-    if (!window.confirm(`Remove "${d.name}" from this project?\n\nOnly the reference in Clinical Towers Project Hub is removed. The PowerPoint file in SharePoint / OneDrive is NOT deleted.`)) return;
+    if (!window.confirm(`Remove "${d.name}" from this project?\n\nOnly the reference in Clinical Tower Project Hub is removed. The PowerPoint file in SharePoint / OneDrive is NOT deleted.`)) return;
     try {
       await api.removeDeck(d.id);
       onChange(decks.filter((x) => x.id !== d.id));

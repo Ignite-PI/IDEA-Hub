@@ -216,7 +216,7 @@ export async function downloadCharterDocx(d: CharterData, timeline: TimelineActi
   ]);
 
   const doc = new Document({
-    creator: 'Clinical Towers Project Hub',
+    creator: 'Clinical Tower Project Hub',
     title: `${d.projectTitle} — Project Charter`,
     styles: { default: { document: { run: { font: FONT, size: 17, color: T.text } } } },
     sections: [{
@@ -231,7 +231,7 @@ export async function downloadCharterDocx(d: CharterData, timeline: TimelineActi
           children: [new Paragraph({
             tabStops: [{ type: TabStopType.RIGHT, position: FULL }],
             children: [
-              new TextRun({ text: `${val(d.projectTitle) || 'Project'} — SBF Project Charter · Generated ${formatDate(new Date().toISOString())}`, color: T.muted, size: 14 }),
+              new TextRun({ text: `${val(d.projectTitle) || 'Project'} — Project Charter · Generated ${formatDate(new Date().toISOString())}`, color: T.muted, size: 14 }),
               new TextRun({ children: ['\tPage ', PageNumber.CURRENT, ' of ', PageNumber.TOTAL_PAGES], color: T.muted, size: 14 }),
             ],
           })],
@@ -364,7 +364,7 @@ export async function downloadCharterPdf(d: CharterData, timeline: TimelineActiv
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(...rgb(T.muted));
-    doc.text(`${val(d.projectTitle) || 'Project'} — SBF Project Charter · Generated ${formatDate(new Date().toISOString())}`, M, H - M + 10);
+    doc.text(`${val(d.projectTitle) || 'Project'} — Project Charter · Generated ${formatDate(new Date().toISOString())}`, M, H - M + 10);
     doc.text(`Page ${i} of ${pages}`, W - M, H - M + 10, { align: 'right' });
   }
 
@@ -383,7 +383,7 @@ export async function downloadCharterPptx(
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 in
   pptx.title = `${val(d.projectTitle) || 'Project'} — Project Charter`;
-  pptx.company = 'Clinical Towers Project Hub · IGNITE';
+  pptx.company = 'Clinical Tower Project Hub';
 
   const C = { purple: '5009B5', dark: '2B1B49', light: '794CFF', pale: 'EBE4FF', turq: '00B8BA', paleTurq: 'D9F5F5', text: '231E33', muted: '6B6680', line: 'D9D4E6' };
   const FONT = 'Segoe UI';
@@ -392,12 +392,12 @@ export async function downloadCharterPptx(
   const logo = await fetch(BRAND.full).then((r) => (r.ok ? r.blob() : null)).then((b) => (b ? blobToDataUrl(b) : null)).catch(() => null);
 
   pptx.defineSlideMaster({
-    title: 'SBF',
+    title: 'CTPH',
     background: { color: 'FFFFFF' },
     objects: [
       { rect: { x: 0, y: 0, w: 13.33, h: 0.12, fill: { color: C.purple } } },
       { rect: { x: 0, y: 7.12, w: 13.33, h: 0.38, fill: { color: 'F7F5FC' } } },
-      { text: { text: `${title} — SBF Project Charter`, options: { x: 0.5, y: 7.14, w: 9, h: 0.34, fontFace: FONT, fontSize: 9, color: C.muted } } },
+      { text: { text: `${title} — Project Charter`, options: { x: 0.5, y: 7.14, w: 9, h: 0.34, fontFace: FONT, fontSize: 9, color: C.muted } } },
       ...(logo ? [{ image: { data: logo, x: 11.55, y: 7.15, w: 1.3, h: 0.3 } }] : []),
     ],
     slideNumber: { x: 10.9, y: 7.17, fontFace: FONT, fontSize: 9, color: C.muted },
@@ -452,7 +452,7 @@ export async function downloadCharterPptx(
   const textSlides = (name: string, text: string, sub?: string) => {
     const pages = chunk(parseRich(text));
     pages.forEach((blocks, i) => {
-      const s = pptx.addSlide({ masterName: 'SBF' });
+      const s = pptx.addSlide({ masterName: 'CTPH' });
       heading(s, pages.length > 1 && i > 0 ? `${name} (continued)` : name, sub);
       s.addText(richRuns(blocks), { x: 0.6, y: 1.55, w: 12.1, h: 5.35, valign: 'top', margin: 4, fit: 'shrink' });
     });
@@ -488,7 +488,7 @@ export async function downloadCharterPptx(
   if (val(d.projectGoals)) textSlides('Engagement Goals', d.projectGoals);
   const scope = scopeParts(d);
   if (scope.length) {
-    const s = pptx.addSlide({ masterName: 'SBF' });
+    const s = pptx.addSlide({ masterName: 'CTPH' });
     heading(s, 'Scope & Constraints');
     const w = 12.3 / scope.length;
     scope.forEach(([label, v], i) => {
@@ -502,7 +502,7 @@ export async function downloadCharterPptx(
 
   const metrics = filledMetrics(d);
   if (metrics.length) {
-    const s = pptx.addSlide({ masterName: 'SBF' });
+    const s = pptx.addSlide({ masterName: 'CTPH' });
     heading(s, 'Key Metrics');
     s.addTable([head(['Key Metric', 'Definition', 'Target', 'Baseline', 'Impact']), ...metrics.map((m) => [m.metric, m.definition, m.target, m.baseline, m.impact].map((x) => ({ text: val(x) })))],
       tableOpts([2.2, 4.1, 2, 2, 2]));
@@ -510,7 +510,7 @@ export async function downloadCharterPptx(
 
   const raciFilled = RACI_ROWS.filter(([, k]) => val(d.raci[k]));
   if (raciFilled.length) {
-    const s = pptx.addSlide({ masterName: 'SBF' });
+    const s = pptx.addSlide({ masterName: 'CTPH' });
     heading(s, 'RACI', 'Who does what');
     const colors = [C.purple, C.light, C.turq, '44B8F3'];
     RACI_ROWS.forEach(([label, k], i) => {
@@ -526,7 +526,7 @@ export async function downloadCharterPptx(
 
   const ms = filledMilestones(d);
   if (ms.length) {
-    const s = pptx.addSlide({ masterName: 'SBF' });
+    const s = pptx.addSlide({ masterName: 'CTPH' });
     heading(s, 'Milestones / Tasks');
     s.addTable([head(['#', 'Milestone / Task', 'Owner', 'Target Date']), ...ms.map((m, i) => [String(i + 1), val(m.task), val(m.owner), date(m.dueDate)].map((x) => ({ text: x })))],
       tableOpts([0.6, 7.4, 2.4, 1.9]));
@@ -534,7 +534,7 @@ export async function downloadCharterPptx(
 
   if (acts.length) {
     // CURES timeline: editable table plus a simple Gantt drawn with shapes for activities that have dates
-    const s = pptx.addSlide({ masterName: 'SBF' });
+    const s = pptx.addSlide({ masterName: 'CTPH' });
     const tp = timelineProgress(timeline);
     heading(s, 'CURES Timeline', `${acts.length} activit${acts.length === 1 ? 'y' : 'ies'} · Timeline Progress ${tp.percent ?? 0}% (${tp.completed} of ${tp.total} completed)`);
     const dated = acts.filter((a) => a.start_date && a.end_date);
@@ -560,7 +560,7 @@ export async function downloadCharterPptx(
       }
       if (dated.length > rows.length) s.addText(`+ ${dated.length - rows.length} more activities in the table`, { x: 0.5, y: 6.7, w: 6, h: 0.3, fontFace: FONT, fontSize: 9, color: C.muted });
     }
-    const s2 = pptx.addSlide({ masterName: 'SBF' });
+    const s2 = pptx.addSlide({ masterName: 'CTPH' });
     heading(s2, 'CURES Timeline — Activities');
     s2.addTable([
       head(['CURES Phase', 'Activity / Task', 'Start', 'End', 'Days', 'Status', 'Progress']),
@@ -576,7 +576,7 @@ export async function downloadCharterPptx(
   // Status / progress summary (always real values)
   const cp = charterProgress(d, timeline);
   const tp = timelineProgress(timeline);
-  const s9 = pptx.addSlide({ masterName: 'SBF' });
+  const s9 = pptx.addSlide({ masterName: 'CTPH' });
   heading(s9, 'Project Status & Progress', 'Project Status, Charter Status, Charter Completeness and Timeline Progress are tracked separately');
   const tiles: [string, string, string][] = [
     ...(meta ? [['Project Status', meta.status, C.purple] as [string, string, string], ['Charter Status', meta.charterStatus, C.light] as [string, string, string]] : []),

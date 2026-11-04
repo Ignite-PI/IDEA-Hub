@@ -36,7 +36,7 @@ export function ManagerLayout() {
         <NavLink to="/managers" end className="nav-link"><LayoutDashboard size={18} /> Savings Summary</NavLink>
         <NavLink to="/managers/input" className="nav-link"><ClipboardList size={18} /> Manager Input {incomplete > 0 && <span className="count warn" title="Records needing information">{incomplete}</span>}</NavLink>
         <NavLink to="/managers/grid" className="nav-link"><Table2 size={18} /> Grid View</NavLink>
-        <NavLink to="/managers/storyboard" className="nav-link"><Presentation size={18} /> Storyboard</NavLink>
+        <NavLink to="/managers/insights" className="nav-link"><Presentation size={18} /> Insights</NavLink>
         <NavLink to="/managers/instructions" className="nav-link"><BookOpen size={18} /> Instructions</NavLink>
         <div style={{ marginTop: 'auto' }} />
         <button className="nav-link signout-link" onClick={() => void signOut()}><LogOut size={18} /> Sign out</button>

@@ -51,16 +51,19 @@ export function SignIn() {
     <div className="signin">
       <div className="signin-art">
         <div className="signin-art-copy">
-          <span className="hero-tag"><img src={BRAND.fire} alt="" /> Payment Integrity · IGNITE</span>
-          <h1>{BRAND.name}</h1>
-          <p>Ideas, improvement initiatives and projects across the SBF Tower — from first spark to implementation.</p>
+          <span className="hero-tag"><img src={BRAND.fire} alt="" /> Clinical Functions · Specialized Business Functions</span>
+          <h1>Clinical Tower<br />Project Hub</h1>
+          <p>Ideas, improvement initiatives and projects across the Clinical Tower — from first spark to implementation.</p>
         </div>
         <img className="signin-team" src={CHARACTERS.team} alt="" />
       </div>
 
       <main className="signin-panel">
         <form className="signin-card" onSubmit={submit} noValidate aria-labelledby="signin-title">
-          <img src={BRAND.full} alt="Payment Integrity IGNITE" className="signin-logo" />
+          <div className="signin-brand">
+            <img src={BRAND.fire} alt="" className="signin-fire" />
+            <div className="signin-brand-text"><b>Clinical Tower</b><span>Project Hub</span></div>
+          </div>
           <h2 id="signin-title">Sign in to {BRAND.name}</h2>
           <div className="signin-entries" role="tablist" aria-label="Choose your sign-in">
             {ENTRIES.map((en) => (
@@ -106,7 +109,7 @@ export function SignIn() {
           <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%', height: 44, marginTop: 20 }}>
             <LogIn size={17} /> {busy ? 'Signing in…' : 'Sign In'}
           </button>
-          <p className="small muted" style={{ marginTop: 16, textAlign: 'center' }}>Authorized SBF Tower users only.</p>
+          <p className="small muted" style={{ marginTop: 16, textAlign: 'center' }}>Authorized Clinical Tower users only.</p>
         </form>
       </main>
     </div>

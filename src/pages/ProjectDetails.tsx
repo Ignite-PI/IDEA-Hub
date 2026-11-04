@@ -18,6 +18,7 @@ import { useToast } from '../components/Toast';
 import { ProjectDecks } from '../components/ProjectDecks';
 import { ImportReview } from '../components/ImportReview';
 import { useBase } from '../components/BasePath';
+import { SavingsInputs } from '../components/SavingsInputs';
 import { STATUSES, STATUS_META, type ActivityStatus, type ProjectDetail, type ProjectStatus, type TimelineActivity } from '../types';
 import { charterProgress, emptyActivity, enteredActivities, normalizeCharter, timelineProgress } from '../utils/charter';
 import { downloadCharterDocx, downloadCharterPdf, downloadCharterPptx, withBusinessFunction } from '../utils/exportCharter';
@@ -233,7 +234,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
           ) : (
             <div className="card-body" style={{ textAlign: 'center' }}>
               <img src={CHARACTERS.alex} alt="" style={{ height: 150, margin: '4px auto 12px', display: 'block' }} />
-              <p className="muted small" style={{ marginBottom: 14 }}>Define the problem, goals, key metrics, scope and CURES timeline in the SBF Project Charter.</p>
+              <p className="muted small" style={{ marginBottom: 14 }}>Define the problem, goals, key metrics, scope and CURES timeline in the Project Charter.</p>
               {!readOnly && <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => navigate(`${base}/projects/${project.id}/charter`)}><FileText size={15} /> Create Project Charter</button>}
               <div className="row" style={{ marginTop: 8 }}>
                 <button className="btn btn-secondary" style={{ flex: 1 }} disabled title="Create the charter first"><FileDown size={15} /> Word</button>
@@ -245,6 +246,8 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
       </div>
 
       <ImportReview project={project} />
+
+      <SavingsInputs projectId={project.id} />
 
       <ProjectDecks projectId={project.id} decks={project.decks ?? []} readOnly={readOnly}
         onChange={(decks) => setProject((p) => (p ? { ...p, decks } : p))} />

@@ -4,6 +4,18 @@ import type {
 
 export interface DeckInput { name: string; url: string; description: string }
 
+/** The project's shared savings record (same row as MANAGERS Manager Input). Percentages are fractions 0–1. */
+export interface ProjectSavings {
+  id: string; initiative_no: number; initiative_name: string; savings_outcome: string | null; savings_track: string | null;
+  owner_signoff: string | null; finance_validated: string | null; current_hourly_rate: number | null; future_hourly_rate: number | null;
+  baseline_volume: number | null; baseline_aht: number | null; future_volume: number | null; future_aht: number | null; productive_hours: number | null;
+  current_annual_rate: number | null; future_annual_rate: number | null; confidence: number | null; realization: number | null;
+  baseline_workload_fte: number | null; future_workload_fte: number | null; capacity_fte_released: number | null;
+  gross_annual_savings: number | null; risk_adjusted_savings: number | null;
+  field_sources: Record<string, { by: 'ignite' | 'managers' | 'workbook'; at: string }> | null;
+  updated_at: string; updated_by: string;
+}
+
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 const USER_KEY = 'sbf.userName';
 
@@ -33,7 +45,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch {
-    throw new ApiError('Could not reach the Clinical Towers Project Hub server. Check your connection and try again.', 0, 'network');
+    throw new ApiError('Could not reach the Clinical Tower Project Hub server. Check your connection and try again.', 0, 'network');
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
@@ -64,6 +76,8 @@ export interface SavingsInitiative {
   owner_signoff: 'Yes' | 'No' | null; finance_validated: 'Yes' | 'No' | null; project_charter_manual: 'Y' | 'N' | null;
   timeline_text: string; fte_text: string; raci_r: string; raci_a: string; raci_c: string; raci_i: string;
   source_key: string | null; import_notes: string; created_at: string; updated_at: string; updated_by: string;
+  /** Who last provided each input: IGNITE (project Savings Inputs), MANAGERS or the workbook import. */
+  field_sources?: Record<string, { by: 'ignite' | 'managers' | 'workbook'; at: string }>;
 }
 export interface SavingsBootstrap {
   lists: Record<string, string[]>;
@@ -107,6 +121,9 @@ export const api = {
   addDeck: (projectId: string, deck: DeckInput) => send<ProjectDeck>('POST', `/projects/${projectId}/decks`, deck),
   updateDeck: (deckId: string, deck: DeckInput) => send<ProjectDeck>('PUT', `/decks/${deckId}`, deck),
   removeDeck: (deckId: string) => send<{ success: boolean }>('DELETE', `/decks/${deckId}`),
+  // Savings Inputs (shared savings record linked to the project)
+  getProjectSavings: (projectId: string) => request<{ initiative: ProjectSavings | null }>(`/projects/${projectId}/savings`),
+  saveProjectSavings: (projectId: string, body: Record<string, number | null>) => send<{ initiative: ProjectSavings | null }>('PUT', `/projects/${projectId}/savings`, body),
 
   savings: {
     bootstrap: () => request<SavingsBootstrap>('/savings/bootstrap'),

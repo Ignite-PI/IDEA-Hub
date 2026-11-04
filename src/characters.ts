@@ -11,7 +11,7 @@ export const CHARACTERS = {
 
 /** IGNITE brand marks (copied unmodified from Characters/IGNITE LOGO). */
 export const BRAND = {
-  name: 'Clinical Towers Project Hub',
+  name: 'Clinical Tower Project Hub',
   fire: '/brand/ignite-fire.png',
   full: '/brand/ignite-full.png',
 };

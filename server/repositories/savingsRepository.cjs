@@ -30,7 +30,7 @@ const mapRow = (r) => {
 };
 
 const SELECT = `SELECT ${['id', 'initiative_no', 'project_id', ...TEXT_FIELDS, ...NUM_FIELDS, ...CALC_FIELDS, ...ENUM_FIELDS,
-  'source_key', 'import_notes', 'created_at', 'updated_at', 'updated_by'].join(', ')},
+  'source_key', 'import_notes', 'field_sources', 'created_at', 'updated_at', 'updated_by'].join(', ')},
   ${DATE_FIELDS.map((f) => `${f}::text AS ${f}`).join(', ')} FROM savings_initiatives`;
 
 async function getLists() {
@@ -121,7 +121,16 @@ async function withCalc(row) {
   return Object.fromEntries(CALC_FIELDS.map((f) => [f, c[f]]));
 }
 
-async function saveInitiative(id, input, user = '') {
+/** Savings inputs a project owner may provide through IGNITE (never the MANAGERS governance fields). */
+const IGNITE_FIELDS = ['baseline_volume', 'baseline_aht', 'future_volume', 'future_aht', 'productive_hours', 'current_annual_rate', 'future_annual_rate', 'confidence', 'realization'];
+
+async function getInitiativeByProject(projectId) {
+  const [r] = await (await db()).query(`${SELECT} WHERE project_id = $1`, [projectId]);
+  return r ? mapRow(r) : null;
+}
+
+/** source = 'managers' | 'ignite' | 'workbook' — recorded per changed input field in field_sources. */
+async function saveInitiative(id, input, user = '', source = 'managers') {
   const d = await db();
   const fields = clean(input);
   return d.tx(async (q) => {
@@ -138,6 +147,16 @@ async function saveInitiative(id, input, user = '') {
       if (other) throw Object.assign(new Error(`That project is already linked to initiative #${other.initiative_no}.`), { status: 409 });
     }
     const merged = { ...(existing || {}), ...fields };
+    // Track who provided each input that actually changed (so MANAGERS can see what came from IGNITE)
+    const sources = { ...(existing?.field_sources || {}) };
+    const at = new Date().toISOString();
+    for (const f of Object.keys(fields)) {
+      if (!INPUT_FIELDS.includes(f)) continue;
+      const before = existing ? existing[f] : null; const after = fields[f];
+      const blank = (v) => v === null || v === undefined || v === '';
+      if (existing && (before === after || (blank(before) && blank(after)) || (typeof after === 'number' && Number(before) === after))) continue;
+      if (blank(after)) delete sources[f]; else sources[f] = { by: source, at };
+    }
     // "Last Updated": recorded automatically on every save unless the caller supplies it (e.g. workbook import)
     if (input.last_updated === undefined) merged.last_updated = new Date().toISOString().slice(0, 10);
     const calc = await withCalc(merged);
@@ -145,15 +164,15 @@ async function saveInitiative(id, input, user = '') {
     const vals = cols.map((c) => (c in calc ? calc[c] : merged[c] === '' && (DATE_FIELDS.includes(c) || ENUM_FIELDS.includes(c)) ? null : merged[c] ?? (TEXT_FIELDS.includes(c) ? '' : null)));
     let newId = id;
     if (existing) {
-      await q(`UPDATE savings_initiatives SET ${cols.map((c, i) => `${c} = $${i + 1}`).join(', ')}, updated_at = now(), updated_by = $${cols.length + 1}
-               WHERE id = $${cols.length + 2}`, [...vals, user, id]);
+      await q(`UPDATE savings_initiatives SET ${cols.map((c, i) => `${c} = $${i + 1}`).join(', ')}, updated_at = now(), updated_by = $${cols.length + 1},
+               field_sources = $${cols.length + 3}::jsonb WHERE id = $${cols.length + 2}`, [...vals, user, id, JSON.stringify(sources)]);
     } else {
       newId = uid();
       await q('LOCK TABLE savings_initiatives IN SHARE ROW EXCLUSIVE MODE');
       const [{ n }] = await q('SELECT COALESCE(MAX(initiative_no), 0) + 1 AS n FROM savings_initiatives');
-      await q(`INSERT INTO savings_initiatives (id, initiative_no, ${cols.join(', ')}, source_key, import_notes, updated_by)
-               VALUES ($1, $2, ${cols.map((_, i) => `$${i + 3}`).join(', ')}, $${cols.length + 3}, $${cols.length + 4}, $${cols.length + 5})`,
-        [newId, input.initiative_no ?? n, ...vals, input.source_key ?? null, input.import_notes ?? '', user]);
+      await q(`INSERT INTO savings_initiatives (id, initiative_no, ${cols.join(', ')}, source_key, import_notes, updated_by, field_sources)
+               VALUES ($1, $2, ${cols.map((_, i) => `$${i + 3}`).join(', ')}, $${cols.length + 3}, $${cols.length + 4}, $${cols.length + 5}, $${cols.length + 6}::jsonb)`,
+        [newId, input.initiative_no ?? n, ...vals, input.source_key ?? null, input.import_notes ?? '', user, JSON.stringify(sources)]);
     }
     const [row] = await q(`${SELECT} WHERE id = $1`, [newId]);
     return mapRow(row);
@@ -171,14 +190,17 @@ async function importWorkbookRows(rows, user) {
   for (const r of rows) {
     const [exists] = await (await db()).query('SELECT 1 FROM savings_initiatives WHERE source_key = $1', [r.source_key]);
     if (exists) { result.skipped++; continue; }
-    await saveInitiative(null, r, user);
+    // A workbook Initiative ID that is already used by another record is never reused (no silent merge / duplicate number)
+    const [idTaken] = r.initiative_no ? await (await db()).query('SELECT 1 FROM savings_initiatives WHERE initiative_no = $1', [r.initiative_no]) : [];
+    if (idTaken) { (result.needsMatching ||= []).push(r.initiative_no); continue; }
+    await saveInitiative(null, r, user, 'workbook');
     result.imported++;
   }
   return result;
 }
 
 module.exports = {
-  CALC_FIELDS, INPUT_FIELDS,
+  CALC_FIELDS, INPUT_FIELDS, IGNITE_FIELDS, getInitiativeByProject,
   getLists, addListValue, getSettings, updateSettings, linkedProjects,
   listInitiatives, getInitiative, saveInitiative, deleteInitiative, importWorkbookRows,
 };

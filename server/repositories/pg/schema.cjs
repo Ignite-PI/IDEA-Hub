@@ -215,6 +215,14 @@ const MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS idx_projects_business_function ON projects(business_function);
     `,
   },
+  {
+    version: 5,
+    name: 'savings field sources (IGNITE / MANAGERS / workbook)',
+    sql: `
+      -- Which side last provided each savings input: {"baseline_volume": {"by": "ignite", "at": "..."}}. Existing rows start empty.
+      ALTER TABLE savings_initiatives ADD COLUMN IF NOT EXISTS field_sources jsonb NOT NULL DEFAULT '{}'::jsonb;
+    `,
+  },
 ];
 
 async function migrate(driver) {

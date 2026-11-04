@@ -202,4 +202,46 @@ router.delete('/decks/:deckId', wrap(async (req, res) => {
   res.json({ success: true });
 }));
 
+// ─── Savings Inputs: the project's ONE savings record (the same savings_initiatives row MANAGERS see) ───
+// IGNITE (and MANAGERS from the project page) may set the operational/financial assumptions only — never Owner Sign-off or Finance Validated.
+const savingsRepo = () => (repo.listDecks ? require('../repositories/savingsRepository.cjs') : null);
+const pickSavings = (i) => i && Object.fromEntries(['id', 'initiative_no', 'initiative_name', 'savings_outcome', 'savings_track', 'owner_signoff', 'finance_validated',
+  'current_hourly_rate', 'future_hourly_rate', 'field_sources', 'updated_at', 'updated_by',
+  ...savingsRepo().IGNITE_FIELDS, ...savingsRepo().CALC_FIELDS].map((k) => [k, i[k] ?? null]));
+
+router.get('/projects/:id/savings', wrap(async (req, res) => {
+  const s = savingsRepo(); if (!s) return res.status(501).json({ error: 'Savings Inputs need the Postgres database.' });
+  if (!(await repo.getProjectRow(req.params.id))) return res.status(404).json({ error: 'Project not found' });
+  res.json({ initiative: pickSavings(await s.getInitiativeByProject(req.params.id)) });
+}));
+
+router.put('/projects/:id/savings', wrap(async (req, res) => {
+  const s = savingsRepo(); if (!s) return res.status(501).json({ error: 'Savings Inputs need the Postgres database.' });
+  const project = await repo.getProjectRow(req.params.id);
+  if (!project) return res.status(404).json({ error: 'Project not found' });
+  const body = req.body ?? {};
+  const input = {};
+  for (const f of s.IGNITE_FIELDS) if (body[f] !== undefined) input[f] = body[f];
+  for (const f of ['confidence', 'realization']) {
+    if (input[f] === undefined || input[f] === null || input[f] === '') continue;
+    const n = Number(input[f]);
+    if (!Number.isFinite(n) || n < 0 || n > 1) return res.status(400).json({ error: `${f === 'confidence' ? 'Confidence' : 'Realization'} % must be between 0% and 100%.` });
+  }
+  const existing = await s.getInitiativeByProject(project.id);
+  // Where the record uses a project-specific HOURLY rate, the annual rate is derived (hourly × productive hours) and is not overwritten
+  if (existing?.current_hourly_rate != null) delete input.current_annual_rate;
+  if (existing?.future_hourly_rate != null) delete input.future_annual_rate;
+  const hasValue = Object.values(input).some((v) => v !== null && v !== '' && v !== undefined);
+  if (!existing && !hasValue) return res.json({ initiative: null });
+  try {
+    const saved = existing
+      ? await s.saveInitiative(existing.id, input, userOf(req), req.session?.role === 'managers' ? 'managers' : 'ignite')
+      : await s.saveInitiative(null, { ...input, project_id: project.id, initiative_name: project.title }, userOf(req), req.session?.role === 'managers' ? 'managers' : 'ignite');
+    res.json({ initiative: pickSavings(saved) });
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ error: e.message });
+    throw e;
+  }
+}));
+
 module.exports = router;

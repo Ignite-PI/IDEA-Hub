@@ -440,6 +440,25 @@ table.table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .required-summary { border-color: #f2c4d1; background: #fff8fa; color: #8e2445; }
 .field.invalid .textarea { border-color: #d6456e; box-shadow: 0 0 0 3px rgba(214, 69, 110, 0.14); }
 
+/* ─── Savings Inputs (shared savings record) ─────────────────────────────── */
+.si-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.si-group { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 14px; margin: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.si-group legend { padding: 0 6px; font-weight: 750; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--purple); }
+.si-input { display: flex; align-items: center; gap: 8px; }
+.si-input .input { max-width: 220px; }
+.si-unit { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.si-missing .input { border-color: #f2c4d1; background: #fff7f9; }
+.si-derived { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: #f6f4fb; color: var(--text); height: auto; min-height: 38px; }
+.si-calc { background: #f8f7fc; }
+.si-calc-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 13.5px; }
+.si-calc-row span { color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+.si-gov { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; }
+.src-pill { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 99px; font-size: 10.5px; font-weight: 700; margin-left: 4px; vertical-align: 1px; }
+.src-ignite { background: #fff0e0; color: #9a4a00; }
+.src-managers { background: #efe7fb; color: #5009b5; }
+.src-workbook { background: #e3f4fb; color: #0e5f86; }
+@media (max-width: 900px) { .si-groups { grid-template-columns: 1fr; } }
+
 /* ─── Business Function (portfolio) ──────────────────────────────────────── */
 .bf-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 650; white-space: nowrap; }
 .bf-clinical { background: #e3f4fb; color: #0e5f86; }
@@ -750,6 +769,11 @@ table.table { width: 100%; border-collapse: separate; border-spacing: 0; }
 .signin-card { width: 100%; max-width: 400px; background: #fff; border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow-lg); padding: 32px 30px; }
 .signin-card h2 { font-size: 21px; margin-bottom: 4px; }
 .signin-logo { height: 58px; display: block; margin-bottom: 18px; }
+.signin-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.signin-fire { width: 48px; height: 48px; object-fit: contain; }
+.signin-brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.signin-brand-text b { font-size: 22px; font-weight: 800; color: var(--purple); }
+.signin-brand-text span { font-size: 16px; font-weight: 650; color: var(--text); }
 .signin-error { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 14px; border-radius: 10px; background: #fff3f6; border: 1px solid #f2c4d1; color: #a3204a; font-weight: 600; font-size: 13px; }
 .signin-note { padding: 10px 12px; margin-bottom: 14px; border-radius: 10px; background: var(--cyan-pale); color: #14679a; font-weight: 600; font-size: 13px; }
 .input-icon { position: relative; display: flex; align-items: center; }

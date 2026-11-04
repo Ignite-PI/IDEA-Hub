@@ -32,7 +32,7 @@ root.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(DIST, 'index.ht
   await repo.init();
   root.listen(PORT, () => {
     const ai = aiStatus();
-    console.log(`\n✓ Clinical Towers Project Hub running at http://localhost:${PORT}`);
+    console.log(`\n✓ Clinical Tower Project Hub running at http://localhost:${PORT}`);
     console.log(`  Storage:  ${repo.providerKey}`);
     console.log(`  Sign-in:  ${auth.config().configured ? `configured (user ${auth.config().username})` : 'NOT configured — set AUTH_PASSWORD_HASH and AUTH_SECRET (see .env.example)'}`);
     console.log(`  AI:       ${ai.configured ? `Azure OpenAI (${ai.deployment})` : 'not configured (optional)'}\n`);

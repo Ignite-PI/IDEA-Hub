@@ -51,7 +51,8 @@ const router = createBrowserRouter([
       { path: 'input', element: <ManagerInput /> },
       { path: 'input/:id', element: <InitiativeEditor /> },
       { path: 'grid', element: <GridView /> },
-      { path: 'storyboard', element: <StoryboardPage /> },
+      { path: 'insights', element: <StoryboardPage /> },
+      { path: 'storyboard', element: <Navigate to="/managers/insights" replace /> },
       { path: 'instructions', element: <InstructionsPage /> },
       // Clinical Tower Projects — the SAME project records IGNITE uses (view + edit)
       { path: 'projects', element: <Navigate to="/managers/portfolio/all" replace /> },

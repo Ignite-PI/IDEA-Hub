@@ -37,10 +37,10 @@ export function Layout() {
     <div className="shell">
       <aside className={`sidebar${open ? ' open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark"><img src={BRAND.fire} alt="IGNITE" /></div>
+          <div className="brand-mark"><img src={BRAND.fire} alt="" /></div>
           <div>
             <div className="brand-title">{BRAND.name}</div>
-            <div className="brand-sub">Payment Integrity · IGNITE</div>
+            <div className="brand-sub">Clinical Functions · Specialized Business Functions</div>
           </div>
         </div>
         <div className="nav-label">Workspace</div>

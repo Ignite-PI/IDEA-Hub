@@ -4,7 +4,7 @@
  */
 export const INSTRUCTIONS = {
   title: '30% Clinical Savings | Managers Input Guide',
-  purpose: 'Capture initiative assumptions once, convert operational improvements into FTE and annual dollar value, and feed the leadership storyboard.',
+  purpose: 'Capture initiative assumptions once, convert operational improvements into FTE and annual dollar value, and feed the leadership Insights.',
   target: '30% of projected 2027 exit: 335 billable FTE and $11.78M revenue equivalent.',
   steps: [
     'Enter one initiative per row on the Manager Input sheet.',
@@ -23,7 +23,7 @@ export const INSTRUCTIONS = {
   guardrails: [
     'Do not count the same benefit under more than one initiative or outcome.',
     'Use validated annualized volumes and fully loaded annual rate cards.',
-    'Additional Work / Capacity is an economic capacity value; label it separately from cash savings in the storyboard.',
+    'Additional Work / Capacity is an economic capacity value; label it separately from cash savings in Insights.',
     'Finance validation should be Yes before a benefit is presented as committed.',
   ],
   source: 'Projected 2027 exit: 1,117 billable HC / $39,267,995.75; potential savings pool: 427 FTE / $12,936,071.28.',
@@ -73,7 +73,7 @@ export const COLUMNS = [
   { col: 'X', header: 'Extra Capacity FTE', key: 'extra_capacity_fte', kind: 'calc', type: 'fte', help: 'Calculated released FTE classified as capacity available to absorb additional work when that outcome is selected.' },
   { col: 'Y', header: 'Rate Card Savings', key: 'rate_card_savings', kind: 'calc', type: 'currency', help: 'Calculated annual value from lowering the rate: future workload FTE × (current annual rate − future annual rate).' },
   { col: 'Z', header: 'Gross Annual Savings', key: 'gross_annual_savings', kind: 'calc', type: 'currency', help: 'Calculated annual economic value before confidence and realization adjustments.' },
-  { col: 'AA', header: 'Risk-Adjusted Savings', key: 'risk_adjusted_savings', kind: 'calc', type: 'currency', help: 'Calculated gross annual savings × confidence % × realization %. This feeds the summary and storyboard.' },
+  { col: 'AA', header: 'Risk-Adjusted Savings', key: 'risk_adjusted_savings', kind: 'calc', type: 'currency', help: 'Calculated gross annual savings × confidence % × realization %. This feeds the summary and Insights.' },
   { col: 'AB', header: 'Target Start', key: 'target_start', kind: 'input', type: 'date', help: 'Planned date for implementation or benefit-delivery work to begin.' },
   { col: 'AC', header: 'Expected Completion', key: 'expected_completion', kind: 'input', type: 'date', help: 'Planned date when implementation is expected to finish or the benefit reaches steady state.' },
   { col: 'AD', header: 'Executive Story / Impact', key: 'executive_story', kind: 'input', type: 'text', help: 'Concise leadership-ready statement describing the problem, intervention, operational impact, and expected value.' },
@@ -81,7 +81,7 @@ export const COLUMNS = [
   { col: 'AF', header: 'Owner Sign-off', key: 'owner_signoff', kind: 'input', list: 'yes_no', help: 'Whether the accountable Operations owner has reviewed and approved the assumptions. Select Yes or No.' },
   { col: 'AG', header: 'Finance Validated', key: 'finance_validated', kind: 'input', list: 'yes_no', help: 'Whether Finance has reviewed and validated the savings methodology and value. Select Yes or No.' },
   { col: 'AH', header: 'Last Updated', key: 'last_updated', kind: 'system', type: 'date', help: 'Date the initiative record or its assumptions were most recently reviewed and updated.' },
-  { col: 'AI', header: 'Project Charter (Y/N)', key: 'project_charter', kind: 'linked', help: 'Y when the linked Clinical Towers Project Hub project has a Project Charter. Not an indication that the project is complete.' },
+  { col: 'AI', header: 'Project Charter (Y/N)', key: 'project_charter', kind: 'linked', help: 'Y when the linked Clinical Tower Project Hub project has a Project Charter. Not an indication that the project is complete.' },
   { col: 'AJ', header: 'Timeline', key: 'timeline_text', kind: 'input', help: 'Free text (no definition or formula in the workbook).' },
   { col: 'AK', header: 'FTE', key: 'fte_text', kind: 'input', help: 'Free text (no definition or formula in the workbook).' },
   { col: 'AL', header: 'R', key: 'raci_r', kind: 'raci', letter: 'R', help: 'Responsible — from the linked Project Charter RACI when available, otherwise entered here.' },

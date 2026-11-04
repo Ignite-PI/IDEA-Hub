@@ -56,11 +56,11 @@ export function Charters() {
       <section className="card" style={{ marginTop: 12, overflow: 'hidden', position: 'relative' }}>
         <div className="row wrap" style={{ alignItems: 'stretch', gap: 0 }}>
           <div style={{ flex: '1 1 420px', padding: '28px 30px' }}>
-            <img src={BRAND.full} alt="Payment Integrity IGNITE" style={{ height: 46, display: 'block', marginBottom: 12 }} />
+            <div className="signin-brand"><img src={BRAND.fire} alt="" className="signin-fire" /><div className="signin-brand-text"><b>Clinical Tower</b><span>Project Hub</span></div></div>
             <div className="eyebrow">Project Charters</div>
             <h1>Define, align and deliver</h1>
             <p className="muted" style={{ maxWidth: 520, marginTop: 6 }}>
-              Every project has one SBF Project Charter. Continue where you left off, mark charters complete and download the latest version as Word, PDF or PowerPoint.
+              Every project has one Project Charter. Continue where you left off, mark charters complete and download the latest version as Word, PDF or PowerPoint.
               Charter Status is separate from Project Status — completing a charter never changes the project's status.
             </p>
             <div className="row wrap" style={{ marginTop: 20, gap: 12 }}>

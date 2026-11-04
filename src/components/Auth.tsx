@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { UNAUTHORIZED_EVENT, api } from '../api';
 import { Loading } from './EmptyState';
@@ -22,11 +22,15 @@ export const homeFor = (role: Role) => (role === 'managers' ? '/managers' : '/')
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ status: 'loading' });
+  // Bumped on every sign-in/out so a slower, older session check (e.g. on a cold start) can never overwrite a newer sign-in
+  const generation = useRef(0);
 
   useEffect(() => {
+    const started = generation.current;
+    const apply = (next: State) => { if (generation.current === started) setState(next); };
     api.auth.session()
-      .then((s) => setState(s.authenticated ? { status: 'signed-in', username: s.username!, role: (s.role as Role) || 'ignite', expiresAt: s.expiresAt } : { status: 'signed-out' }))
-      .catch(() => setState({ status: 'signed-out' }));
+      .then((s) => apply(s.authenticated ? { status: 'signed-in', username: s.username!, role: (s.role as Role) || 'ignite', expiresAt: s.expiresAt } : { status: 'signed-out' }))
+      .catch(() => apply({ status: 'signed-out' }));
     const onUnauthorized = () => setState((s) => (s.status === 'signed-in' ? { status: 'signed-out', expired: true } : s));
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
@@ -34,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (username: string, password: string) => {
     const s = await api.auth.login(username, password);
+    generation.current++;
     const role = (s.role as Role) || 'ignite';
     setState({ status: 'signed-in', username: s.username!, role, expiresAt: s.expiresAt });
     return role;
@@ -41,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await api.auth.logout().catch(() => {});
+    generation.current++;
     setState({ status: 'signed-out' });
   }, []);
 

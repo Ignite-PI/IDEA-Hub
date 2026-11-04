@@ -262,7 +262,7 @@ export function CharterBuilder() {
       </div>
       <div className="page-head">
         <div>
-          <div className="eyebrow">SBF Project Charter</div>
+          <div className="eyebrow">Project Charter</div>
           <h1>{data.projectTitle || project.title}</h1>
           <div className="status-pair compact" style={{ marginTop: 10 }}>
             <div><span className="k">Project Status</span><StatusBadge status={project.status} /></div>

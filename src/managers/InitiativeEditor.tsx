@@ -5,6 +5,12 @@ import { api, type SavingsInitiative } from '../api';
 import { useToast } from '../components/Toast';
 import { PeoplePicker, peopleOptions, splitPeople } from '../components/PeoplePicker';
 import { calcInitiative } from '../../shared/savingsCalc';
+
+const IGNITE_LABELS: Record<string, string> = {
+  baseline_volume: 'Baseline Annual Volume', baseline_aht: 'Baseline AHT', future_volume: 'Future Annual Volume', future_aht: 'Future AHT',
+  productive_hours: 'Productive Hours per FTE', current_annual_rate: 'Current Annual Rate per FTE', future_annual_rate: 'Future Annual Rate per FTE',
+  confidence: 'Confidence %', realization: 'Realization %',
+};
 import { COLUMNS } from '../../shared/savingsContent';
 import { initiativeIssues, resolveInitiative } from '../../shared/savingsResolve';
 import { fte, money, pct, useSavings } from './SavingsContext';
@@ -218,10 +224,18 @@ export function InitiativeEditor() {
       </div>
 
       {existing?.row.import_notes && <div className="filter-note"><Info size={14} /> Imported from the workbook. {existing.row.import_notes}</div>}
+      {(() => {
+        const fromIgnite = Object.entries(existing?.row.field_sources ?? {}).filter(([, s]) => s.by === 'ignite').map(([k]) => IGNITE_LABELS[k] ?? k);
+        return fromIgnite.length > 0 && (
+          <div className="filter-note" style={{ background: '#fff6ec', borderColor: '#f3d2ae' }}>
+            <Info size={14} /> <span><span className="src-pill src-ignite">From IGNITE</span> Provided by the project owner on the project page: <b>{fromIgnite.join(', ')}</b>. Review them here; Owner Sign-off and Finance Validated stay with MANAGERS.</span>
+          </div>
+        );
+      })()}
 
       <div className="editor-grid">
         <div className="stack">
-          <Section title="SBF Project link" sub="Connect this initiative to an existing project so its name, manager, area, status, charter and RACI are filled automatically.">
+          <Section title="Project link" sub="Connect this initiative to an existing project so its name, manager, area, status, charter and RACI are filled automatically.">
             {project ? (
               <div className="link-card">
                 <div>

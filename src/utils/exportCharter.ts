@@ -216,7 +216,7 @@ export async function downloadCharterDocx(d: CharterData, timeline: TimelineActi
   ]);
 
   const doc = new Document({
-    creator: 'Clinical Tower Project Hub',
+    creator: 'SBF Project Hub',
     title: `${d.projectTitle} — Project Charter`,
     styles: { default: { document: { run: { font: FONT, size: 17, color: T.text } } } },
     sections: [{
@@ -383,7 +383,7 @@ export async function downloadCharterPptx(
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE'; // 13.33 x 7.5 in
   pptx.title = `${val(d.projectTitle) || 'Project'} — Project Charter`;
-  pptx.company = 'Clinical Tower Project Hub';
+  pptx.company = 'SBF Project Hub';
 
   const C = { purple: '5009B5', dark: '2B1B49', light: '794CFF', pale: 'EBE4FF', turq: '00B8BA', paleTurq: 'D9F5F5', text: '231E33', muted: '6B6680', line: 'D9D4E6' };
   const FONT = 'Segoe UI';

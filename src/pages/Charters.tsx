@@ -56,7 +56,7 @@ export function Charters() {
       <section className="card" style={{ marginTop: 12, overflow: 'hidden', position: 'relative' }}>
         <div className="row wrap" style={{ alignItems: 'stretch', gap: 0 }}>
           <div style={{ flex: '1 1 420px', padding: '28px 30px' }}>
-            <div className="signin-brand"><img src={BRAND.fire} alt="" className="signin-fire" /><div className="signin-brand-text"><b>Clinical Tower</b><span>Project Hub</span></div></div>
+            <div className="signin-brand"><img src={BRAND.fire} alt="" className="signin-fire" /><div className="signin-brand-text"><b>SBF</b><span>Project Hub</span></div></div>
             <div className="eyebrow">Project Charters</div>
             <h1>Define, align and deliver</h1>
             <p className="muted" style={{ maxWidth: 520, marginTop: 6 }}>

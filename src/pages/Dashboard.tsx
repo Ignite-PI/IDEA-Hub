@@ -50,9 +50,9 @@ export function Dashboard() {
     <div className="stack">
       <section className="hero" style={{ marginTop: 12 }}>
         <div className="hero-copy">
-          <span className="hero-tag"><img src={BRAND.fire} alt="" /> {BRAND.name} · Clinical Tower Ideas & Improvement Portfolio</span>
+          <span className="hero-tag"><img src={BRAND.fire} alt="" /> {BRAND.name} · SBF Tower Ideas & Improvement Portfolio</span>
           <h1>Every idea, initiative and project — in one place.</h1>
-          <p>Track the Clinical Tower portfolio from first spark to implementation, keep project charters current, and give leadership a clear view at a glance.</p>
+          <p>Track the SBF Tower portfolio from first spark to implementation, keep project charters current, and give leadership a clear view at a glance.</p>
           <div className="hero-stats">
             <div className="hero-stat"><strong>{total}</strong><span>In portfolio</span></div>
             <div className="hero-stat"><strong>{active}</strong><span>Approved & in delivery</span></div>
@@ -64,11 +64,11 @@ export function Dashboard() {
             <button className="btn btn-glass" onClick={() => navigate('/projects')}><FolderKanban size={16} /> Browse portfolio</button>
           </div>
         </div>
-        <div className="hero-art"><img src={CHARACTERS.team} alt="Clinical Tower characters" /></div>
+        <div className="hero-art"><img src={CHARACTERS.team} alt="SBF Tower characters" /></div>
       </section>
 
       {loading ? <Loading label="Loading portfolio…" /> : error ? (
-        <div className="card"><EmptyState image={CHARACTERS.corix} title="We couldn't reach the portfolio service">{error}. Make sure the Clinical Tower Project Hub server is running, then refresh.</EmptyState></div>
+        <div className="card"><EmptyState image={CHARACTERS.corix} title="We couldn't reach the portfolio service">{error}. Make sure the SBF Project Hub server is running, then refresh.</EmptyState></div>
       ) : (
         <>
           <section>

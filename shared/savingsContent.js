@@ -81,7 +81,7 @@ export const COLUMNS = [
   { col: 'AF', header: 'Owner Sign-off', key: 'owner_signoff', kind: 'input', list: 'yes_no', help: 'Whether the accountable Operations owner has reviewed and approved the assumptions. Select Yes or No.' },
   { col: 'AG', header: 'Finance Validated', key: 'finance_validated', kind: 'input', list: 'yes_no', help: 'Whether Finance has reviewed and validated the savings methodology and value. Select Yes or No.' },
   { col: 'AH', header: 'Last Updated', key: 'last_updated', kind: 'system', type: 'date', help: 'Date the initiative record or its assumptions were most recently reviewed and updated.' },
-  { col: 'AI', header: 'Project Charter (Y/N)', key: 'project_charter', kind: 'linked', help: 'Y when the linked Clinical Tower Project Hub project has a Project Charter. Not an indication that the project is complete.' },
+  { col: 'AI', header: 'Project Charter (Y/N)', key: 'project_charter', kind: 'linked', help: 'Y when the linked SBF Project Hub project has a Project Charter. Not an indication that the project is complete.' },
   { col: 'AJ', header: 'Timeline', key: 'timeline_text', kind: 'input', help: 'Free text (no definition or formula in the workbook).' },
   { col: 'AK', header: 'FTE', key: 'fte_text', kind: 'input', help: 'Free text (no definition or formula in the workbook).' },
   { col: 'AL', header: 'R', key: 'raci_r', kind: 'raci', letter: 'R', help: 'Responsible — from the linked Project Charter RACI when available, otherwise entered here.' },

@@ -95,7 +95,7 @@ export function initiativeIssues(row, resolved) {
   for (const letter of ['R', 'A', 'C', 'I']) {
     if (resolved.raci[letter].source === 'missing') issues.push({ field: `raci_${letter.toLowerCase()}`, label: `RACI ${letter} missing`, category: 'RACI', kind: 'missing' });
   }
-  if (!resolved.linked) issues.push({ field: 'project_id', label: 'Not linked to a Clinical Tower Project Hub project', category: 'Project link', kind: 'notice' });
+  if (!resolved.linked) issues.push({ field: 'project_id', label: 'Not linked to an SBF Project Hub project', category: 'Project link', kind: 'notice' });
   return issues;
 }
 

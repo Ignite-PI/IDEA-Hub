@@ -43,7 +43,7 @@ async function buildSavingsWorkbook({ lists, settings, initiatives, projects }) 
   const summary = summarize(rows.map(({ r, resolved, calc }) => ({ ...r, ...calc, initiative_name: resolved.initiative_name.value })), settings);
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Clinical Tower Project Hub';
+  wb.creator = 'SBF Project Hub';
   wb.created = new Date();
   wb.calcProperties = { fullCalcOnLoad: true };
 
@@ -69,7 +69,7 @@ async function buildSavingsWorkbook({ lists, settings, initiatives, projects }) 
   put('Source deck reference', INSTRUCTIONS.source).getCell(1).font = { bold: true };
   put('Workbook formula notes', '').getCell(1).font = { bold: true, color: { argb: C.purple } };
   INSTRUCTIONS.workbookNotes.forEach((g) => put('', g));
-  put('Exported from', `Clinical Tower Project Hub on ${new Date().toISOString().slice(0, 10)} — ${initiatives.length} initiative(s). The application database is the live source; this file is a soft copy.`);
+  put('Exported from', `SBF Project Hub on ${new Date().toISOString().slice(0, 10)} — ${initiatives.length} initiative(s). The application database is the live source; this file is a soft copy.`);
 
   // ── Manager Input (columns A..AO exactly as the template, then app-only columns) ──
   const extra = [
@@ -257,7 +257,7 @@ async function buildSavingsWorkbook({ lists, settings, initiatives, projects }) 
   ws.getCell('B23').value = { formula: 'SUM(B20:B22)', result: summary.outcomes_total.risk_adjusted_savings }; ws.getCell('B23').numFmt = FMT.currency;
   ws.getCell('C23').value = { formula: 'SUM(C20:C22)', result: summary.outcomes_total.fte }; ws.getCell('C23').numFmt = FMT.fte;
   ws.getCell('D23').value = { formula: 'SUM(D20:D22)', result: summary.outcomes_total.initiatives };
-  ws.getCell('A25').value = 'Charts: see the Savings Summary dashboard in Clinical Tower Project Hub (Risk-Adjusted Savings by Track and by Outcome).';
+  ws.getCell('A25').value = 'Charts: see the Savings Summary dashboard in SBF Project Hub (Risk-Adjusted Savings by Track and by Outcome).';
   ws.getCell('A25').font = { italic: true, color: { argb: 'FF6B6680' } };
 
   // ── Insights (workbook "Storyboard") ────────────────────────────────────────────────────────────

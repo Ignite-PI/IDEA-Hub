@@ -108,7 +108,7 @@ export function ProjectForm() {
   return (
     <>
       <div className="crumbs">
-        <Link to={base ? `${base}/portfolio/all` : '/projects'}>{base ? 'Clinical Tower Projects' : 'All Projects'}</Link>
+        <Link to={base ? `${base}/portfolio/all` : '/projects'}>{base ? 'SBF Projects' : 'All Projects'}</Link>
         <ChevronRight size={14} />
         {editing ? <><Link to={`${base}/projects/${id}`}>{form.title || 'Project'}</Link><ChevronRight size={14} /><span>Edit</span></> : <span>New</span>}
       </div>
@@ -141,7 +141,7 @@ export function ProjectForm() {
                   <option value="">{NEEDS_BF}</option>
                   {BUSINESS_FUNCTIONS.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
                 </select>
-                <span className="hint">Which Clinical Tower portfolio this project belongs to.</span>
+                <span className="hint">Which SBF portfolio this project belongs to.</span>
               </div>
               <div className="field">
                 <label htmlFor="owner">Project Owner</label>

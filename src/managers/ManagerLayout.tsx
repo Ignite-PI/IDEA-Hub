@@ -28,7 +28,7 @@ export function ManagerLayout() {
             <div className="brand-sub">Senior Managers · Projects &amp; 30% Savings</div>
           </div>
         </div>
-        <div className="nav-label">Clinical Tower Projects</div>
+        <div className="nav-label">SBF Projects</div>
         <NavLink to="/managers/portfolio/all" className="nav-link"><FolderKanban size={18} /> All <span className="count">{projects.length}</span></NavLink>
         <NavLink to="/managers/portfolio/clinical" className="nav-link"><Stethoscope size={18} /> Clinical Functions <span className="count">{projects.filter((p) => p.business_function === 'clinical').length}</span></NavLink>
         <NavLink to="/managers/portfolio/sbf" className="nav-link"><Briefcase size={18} /> Specialized Business Functions <span className="count">{projects.filter((p) => p.business_function === 'sbf').length}</span></NavLink>
@@ -45,7 +45,7 @@ export function ManagerLayout() {
       <div className="main">
         <header className="topbar scrolled">
           <button className="btn btn-secondary btn-icon menu-btn" onClick={() => setOpen(true)} aria-label="Open navigation"><MenuIcon size={18} /></button>
-          <div className="mgr-banner"><b>MANAGERS</b> · Clinical Tower Projects &amp; Savings Management</div>
+          <div className="mgr-banner"><b>MANAGERS</b> · SBF Projects &amp; Savings Management</div>
           <div className="topbar-spacer" />
           <ExportButton />
         </header>

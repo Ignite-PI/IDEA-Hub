@@ -21,12 +21,12 @@ const FILTER_LABELS: Record<MultiKey, string> = {
 const BF_LABELS: Record<string, string> = { clinical: 'Clinical Functions', sbf: 'Specialized Business Functions', none: NEEDS_BF };
 export type Portfolio = 'all' | BusinessFunction;
 const PORTFOLIOS: { key: Portfolio; label: string }[] = [
-  { key: 'all', label: 'All Clinical Tower Projects' },
+  { key: 'all', label: 'All SBF Projects' },
   ...BUSINESS_FUNCTIONS.map((b) => ({ key: b.code as Portfolio, label: b.label })),
 ];
 
 /**
- * Project portfolio list: IGNITE "All Projects" (no portfolio prop) and the MANAGERS Clinical Tower Projects dashboards
+ * Project portfolio list: IGNITE "All Projects" (no portfolio prop) and the MANAGERS SBF Projects dashboards
  * (portfolio = all | clinical | sbf). Same project records, same filters: OR within a filter, AND across filters.
  */
 export function Projects({ portfolio }: { portfolio?: Portfolio } = {}) {
@@ -95,9 +95,9 @@ export function Projects({ portfolio }: { portfolio?: Portfolio } = {}) {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">{portfolio ? 'Clinical Tower Projects' : 'Portfolio'}</div>
+          <div className="eyebrow">{portfolio ? 'SBF Projects' : 'Portfolio'}</div>
           <h1>{portfolio ? PORTFOLIOS.find((x) => x.key === portfolio)!.label : view.title}</h1>
-          <p>{portfolio ? 'The same project records IGNITE uses. Open a project to view or update it, its Project Charter, CURES timeline and decks.' : 'Search, filter and sort every idea and project across the Clinical Towers.'}</p>
+          <p>{portfolio ? 'The same project records IGNITE uses. Open a project to view or update it, its Project Charter, CURES timeline and decks.' : 'Search, filter and sort every idea and project across the SBF Tower.'}</p>
         </div>
       </div>
 
@@ -173,7 +173,7 @@ export function Projects({ portfolio }: { portfolio?: Portfolio } = {}) {
             action={<button className="btn btn-primary" onClick={() => navigate(`${base}/new`)}><Plus size={16} /> Add Project / Idea</button>}>
             {portfolio && portfolio !== 'all'
               ? `Projects appear here once their Business Function is set to ${bfLabel(portfolio)} (Edit Project or Project Charter).`
-              : 'Start the Clinical Towers portfolio by capturing the first idea or initiative.'}
+              : 'Start the SBF Tower portfolio by capturing the first idea or initiative.'}
           </EmptyState>
         )}
       </div>
@@ -192,7 +192,7 @@ function PortfolioSummary({ all, scoped, portfolio, base }: { all: Project[]; sc
   const active = scoped.filter((p) => ['Approved', 'In Delivery'].includes(p.status)).length;
   return (
     <>
-      <div className="portfolio-tabs" role="tablist" aria-label="Clinical Tower Projects portfolio">
+      <div className="portfolio-tabs" role="tablist" aria-label="SBF Projects portfolio">
         {PORTFOLIOS.map((x) => (
           <Link key={x.key} role="tab" aria-selected={x.key === portfolio} className={`portfolio-tab${x.key === portfolio ? ' active' : ''}`} to={`${base}/portfolio/${x.key}`}>
             <span className="small muted">{x.label}</span><b>{count(x.key)}</b>

@@ -254,7 +254,7 @@ export function CharterBuilder() {
   return (
     <>
       <div className="crumbs">
-        <Link to={base ? `${base}/portfolio/all` : '/charters'}>{base ? 'Clinical Tower Projects' : 'Project Charters'}</Link>
+        <Link to={base ? `${base}/portfolio/all` : '/charters'}>{base ? 'SBF Projects' : 'Project Charters'}</Link>
         <ChevronRight size={14} />
         <Link to={`${base}/projects/${project.id}`}>{project.title}</Link>
         <ChevronRight size={14} />
@@ -314,7 +314,7 @@ export function CharterBuilder() {
                 <option value="">{NEEDS_BF}</option>
                 {BUSINESS_FUNCTIONS.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
               </select>
-              <span className="hint">Which Clinical Tower portfolio this project belongs to (saved with the charter).</span>
+              <span className="hint">Which SBF portfolio this project belongs to (saved with the charter).</span>
             </div>
             <p className="small muted" style={{ marginBottom: 12 }}>
               Project Owner: <b>{ownerName || 'not set'}</b>. Execution Lead and CURES Lead follow the Project Owner automatically until you change them.

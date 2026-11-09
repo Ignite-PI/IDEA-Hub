@@ -159,7 +159,7 @@ export function ProjectDetails({ readOnly = false }: { readOnly?: boolean } = {}
   return (
     <>
       <div className="crumbs">
-        <Link to={base ? `${base}/portfolio/all` : '/projects'}>{base ? 'Clinical Tower Projects' : 'All Projects'}</Link>
+        <Link to={base ? `${base}/portfolio/all` : '/projects'}>{base ? 'SBF Projects' : 'All Projects'}</Link>
         <ChevronRight size={14} />
         <span>{project.title}</span>
       </div>
